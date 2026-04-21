@@ -1,13 +1,9 @@
 package aiss.videominer.controller;
 
 import aiss.videominer.exception.*;
-import aiss.videominer.model.Comment;
 import aiss.videominer.model.User;
-import aiss.videominer.model.Video;
-import aiss.videominer.repository.CommentRepository;
-import aiss.videominer.repository.TokenRepository;
-import aiss.videominer.repository.UserRepository;
-import aiss.videominer.repository.VideoRepository;
+import aiss.videominer.service.TokenService;
+import aiss.videominer.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -18,17 +14,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Tag(name="User", description="User management API")
 @RestController
@@ -36,16 +26,10 @@ import java.util.stream.Collectors;
 public class UserController {
 
     @Autowired
-    UserRepository userRepository;
+    UserService userService;
 
     @Autowired
-    TokenRepository tokenRepository;
-
-    @Autowired
-    VideoRepository videoRepository;
-
-    @Autowired
-    CommentRepository commentRepository;
+    TokenService tokenService;
 
     // GET http://localhost:8080/videoMiner/v1/users
     @Operation( summary = "Retrieve a list of users",
@@ -67,53 +51,8 @@ public class UserController {
                               @RequestParam(required = false) String id, @RequestParam(required = false) String name,
                               @RequestParam(required = false) String userLink, @RequestParam(required = false) String pictureLink,
                               @RequestParam(required = false) String order) throws TokenRequiredException, TokenNotValidException, BadRequestParameterField, BadRequestIdParameter {
-        String token = header.getFirst("Authorization");
-        if (token == null) {
-            throw new TokenRequiredException();
-        } else if (tokenRepository.existsById(token)) {
-            Page<User> pageChannels;
-            Pageable paging;
-            if(order!=null){
-                if(order.startsWith("-")){
-                    paging = PageRequest.of(page, size, Sort.by(order.substring(1)).descending());
-                }
-                else{
-                    paging = PageRequest.of(page, size, Sort.by(order).ascending());
-                }
-            }else{
-                paging = PageRequest.of(page, size);
-            }
-            int count = 0;
-            if (id != null) count++;
-            if (name != null) count++;
-            if (userLink != null) count++;
-            if (pictureLink != null) count++;
-
-            if (count > 1) {
-                throw new BadRequestParameterField();
-            }
-
-            if (id != null) {
-                try{
-                    Long idL = Long.valueOf(id);
-                    pageChannels = userRepository.findById(idL, paging);
-                }catch(NumberFormatException  e) {
-                    throw new BadRequestIdParameter();
-                }
-            } else if (name != null) {
-                pageChannels = userRepository.findByName(name, paging);
-            } else if (userLink != null) {
-                pageChannels = userRepository.findByUserLinkContaining(userLink, paging);
-            } else if (pictureLink != null) {
-                pageChannels = userRepository.findByPictureLinkContaining(pictureLink, paging);
-            } else {
-                pageChannels = userRepository.findAll(paging);
-            }
-
-            return pageChannels.getContent();
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        return userService.findAll(page, size, id, name, userLink, pictureLink, order);
     }
 
     // GET http://localhost:8080/videoMiner/v1/users/{id}
@@ -128,18 +67,8 @@ public class UserController {
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("/users/{id}")
     public User findById(@PathVariable String id, @RequestHeader HttpHeaders header) throws UserNotFoundException, TokenNotValidException, TokenRequiredException {
-        String token = header.getFirst("Authorization");
-        if (token == null) {
-            throw new TokenRequiredException();
-        } else if (tokenRepository.existsById(token)) {
-            Optional<User> user = userRepository.findById(id);
-            if(!user.isPresent()){
-                throw new UserNotFoundException();
-            }
-            return user.get();
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        return userService.findById(id);
     }
 
     //GET http://localhost:8080/videoMiner/v1/videos/{videoId}/users
@@ -154,19 +83,8 @@ public class UserController {
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("/videos/{videoId}/users")
     public List<User> getAllCaptionsByVideo(@PathVariable("videoId") String videoId, @RequestHeader HttpHeaders header) throws VideoNotFoundException, TokenRequiredException, TokenNotValidException {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            Optional<Video> video = videoRepository.findById(videoId);
-            if (!video.isPresent()) {
-                throw new VideoNotFoundException();
-            }
-            return video.get().getComments().stream().map(Comment::getAuthor).collect(Collectors.toList());
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        return userService.findByVideo(videoId);
     }
 
     // PUT http://localhost:8080/videoMiner/v1/users/{id}
@@ -181,28 +99,8 @@ public class UserController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PutMapping("/users/{id}")
     public void update(@Valid @RequestBody User updatedUser, @PathVariable String id, @RequestHeader HttpHeaders header) throws UserNotFoundException, TokenNotValidException, TokenRequiredException {
-        String token = header.getFirst("Authorization");
-        if (token == null) {
-            throw new TokenRequiredException();
-        } else if (tokenRepository.existsById(token)) {
-            Optional<User> userData = userRepository.findById(id);
-            if (!userData.isPresent()) {
-                throw new UserNotFoundException();
-            }
-            User _user = userData.get();
-            if(updatedUser.getName()!=null){
-                _user.setName(updatedUser.getName());
-            }
-            if(updatedUser.getUser_link()!=null){
-                _user.setUser_link(updatedUser.getUser_link());
-            }
-            if(updatedUser.getPicture_link()!=null){
-                _user.setPicture_link(updatedUser.getPicture_link());
-            }
-            userRepository.save(_user);
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        userService.update(id, updatedUser);
     }
 
     // DELETE http://localhost:8080/videoMiner/v1/users/{id}
@@ -218,22 +116,8 @@ public class UserController {
     @DeleteMapping("/users/{id}")
     public void delete(@Parameter(description = "Id of the user to be deleted") @PathVariable String id,
                        @RequestHeader HttpHeaders header) throws TokenRequiredException, TokenNotValidException, UserNotFoundException {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            Optional<User> userData = userRepository.findById(id);
-            if(!userData.isPresent()) {
-                throw new UserNotFoundException();
-            }
-            User author = userData.get();
-            Comment comment = commentRepository.findByAuthor(author);
-            System.out.println(comment);
-            commentRepository.delete(comment);
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        userService.delete(id);
     }
 
 }

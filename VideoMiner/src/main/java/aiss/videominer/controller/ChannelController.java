@@ -1,14 +1,9 @@
 package aiss.videominer.controller;
 
-
 import aiss.videominer.exception.*;
 import aiss.videominer.model.Channel;
-import aiss.videominer.repository.CaptionRepository;
-import aiss.videominer.repository.ChannelRepository;
-import aiss.videominer.repository.CommentRepository;
-import aiss.videominer.repository.TokenRepository;
-import aiss.videominer.repository.UserRepository;
-import aiss.videominer.repository.VideoRepository;
+import aiss.videominer.service.ChannelService;
+import aiss.videominer.service.TokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -18,16 +13,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @Tag(name="Channel", description="Channel management API")
 @RestController
@@ -35,22 +25,10 @@ import java.util.Optional;
 public class ChannelController {
 
     @Autowired
-    ChannelRepository channelRepository;
+    ChannelService channelService;
 
     @Autowired
-    VideoRepository videoRepository;
-
-    @Autowired
-    CaptionRepository captionRepository;
-
-    @Autowired
-    CommentRepository commentRepository;
-
-    @Autowired
-    UserRepository userRepository;
-
-    @Autowired
-    TokenRepository tokenRepository;
+    TokenService tokenService;
 
     // GET http://localhost:8080/videoMiner/v1/channels
     @ResponseStatus(HttpStatus.OK)
@@ -72,49 +50,8 @@ public class ChannelController {
                                  @RequestParam(required = false) String id, @RequestParam(required = false) String name,
                                  @RequestParam(required = false) String description, @RequestParam(required = false) String createdTime,
                                  @RequestParam(required = false) String order) throws TokenNotValidException, TokenRequiredException, BadRequestParameterField {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            Page<Channel> pageChannels;
-            Pageable paging;
-            if(order!=null){
-                if(order.startsWith("-")){
-                    paging = PageRequest.of(page, size, Sort.by(order.substring(1)).descending());
-                }
-                else{
-                    paging = PageRequest.of(page, size, Sort.by(order).ascending());
-                }
-            }else{
-                paging = PageRequest.of(page, size);
-            }
-
-            int count = 0;
-            if (id != null) count++;
-            if (name != null) count++;
-            if (description != null) count++;
-            if (createdTime != null) count++;
-
-            if (count > 1) {
-                throw new BadRequestParameterField();
-            }
-
-            if (id != null) {
-                pageChannels = channelRepository.findByIdContaining(id, paging);
-            } else if (name != null) {
-                pageChannels = channelRepository.findByNameContaining(name, paging);
-            } else if (description != null) {
-                pageChannels = channelRepository.findByDescriptionContaining(description, paging);
-            } else if (createdTime != null) {
-                pageChannels = channelRepository.findByCreatedTimeContaining(createdTime, paging);
-            } else {
-                pageChannels = channelRepository.findAll(paging);
-            }
-            return pageChannels.getContent();
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        return channelService.findAll(page, size, id, name, description, createdTime, order);
     }
 
     // GET http://localhost:8080/videoMiner/v1/channels/{id}
@@ -129,19 +66,8 @@ public class ChannelController {
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("/channels/{id}")
     public Channel findById(@PathVariable String id, @RequestHeader HttpHeaders header) throws ChannelNotFoundException, TokenRequiredException, TokenNotValidException {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            Optional<Channel> channel = channelRepository.findById(id);
-            if (!channel.isPresent()) {
-                throw new ChannelNotFoundException();
-            }
-            return channel.get();
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        return channelService.findById(id);
     }
 
     // POST http://localhost:8080/videoMiner/v1/channels
@@ -156,19 +82,8 @@ public class ChannelController {
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/channels")
     public Channel create(@Valid @RequestBody Channel channel, @RequestHeader HttpHeaders header) throws TokenNotValidException, TokenRequiredException, IdCannotBeNull {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            if(channel.getId() == null){
-                throw new IdCannotBeNull();
-            }
-
-            return channelRepository.save(channel);
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        return channelService.create(channel);
     }
 
     // PUT http://localhost:8080/videoMiner/v1/channels/{id}
@@ -184,26 +99,8 @@ public class ChannelController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PutMapping("/channels/{id}")
     public void update(@Valid @RequestBody Channel updatedChannel, @PathVariable String id, @RequestHeader HttpHeaders header) throws ChannelNotFoundException, TokenRequiredException, TokenNotValidException {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            Optional<Channel> channelData = channelRepository.findById(id);
-            if (!channelData.isPresent()) {
-                throw new ChannelNotFoundException();
-            }
-            Channel _channel = channelData.get();
-            if (updatedChannel.getName() != null) {
-                _channel.setName(updatedChannel.getName());
-            }
-            if (updatedChannel.getDescription() != null) {
-                _channel.setDescription(updatedChannel.getDescription());
-            }
-            channelRepository.save(_channel);
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        channelService.update(id, updatedChannel);
     }
 
     // DELETE http://localhost:8080/videoMiner/v1/channels/{id}
@@ -218,19 +115,7 @@ public class ChannelController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/channels/{id}")
     public void delete(@PathVariable String id, @RequestHeader HttpHeaders header) throws TokenRequiredException, TokenNotValidException, ChannelNotFoundException {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            if(channelRepository.existsById(id)) {
-                channelRepository.deleteById(id);
-            }
-            else{
-                throw new ChannelNotFoundException();
-            }
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        channelService.delete(id);
     }
 }

@@ -5,16 +5,16 @@ Monorepo that contains three Spring Boot microservices that together form the **
 ## Architecture
 
 ```
-Vimeo API ──────► VimeoMiner_G7   (port 8081) ──┐
-                                                  ├──► VideoMiner_G7 (port 8080)
-YouTube API ────► YoutubeMiner_G7 (port 8082) ──┘        (H2 database)
+Vimeo API ──────► VimeoMiner   (port 8081) ──┐
+                                                  ├──► VideoMiner (port 8080)
+YouTube API ────► YoutubeMiner (port 8082) ──┘        (H2 database)
 ```
 
 | Module | Description |
 |---|---|
-| `VideoMiner_G7` | Central REST API. Stores channels, videos, comments, captions and users in an H2 database. |
-| `VimeoMiner_G7` | Adapter that fetches data from the **Vimeo API** and posts it to VideoMiner. |
-| `YoutubeMiner_G7` | Adapter that fetches data from the **YouTube Data API v3** and posts it to VideoMiner. |
+| `VideoMiner` | Central REST API. Stores channels, videos, comments, captions and users in an H2 database. |
+| `VimeoMiner` | Adapter that fetches data from the **Vimeo API** and posts it to VideoMiner. |
+| `YoutubeMiner` | Adapter that fetches data from the **YouTube Data API v3** and posts it to VideoMiner. |
 
 ## Prerequisites
 
@@ -25,12 +25,12 @@ YouTube API ────► YoutubeMiner_G7 (port 8082) ──┘        (H2 dat
 
 Before running the adapter services, set your API tokens in their `application.properties` files:
 
-**`VimeoMiner_G7/src/main/resources/application.properties`**
+**`VimeoMiner/src/main/resources/application.properties`**
 ```properties
 vimeo.token=YOUR_VIMEO_TOKEN
 ```
 
-**`YoutubeMiner_G7/src/main/resources/application.properties`**
+**`YoutubeMiner/src/main/resources/application.properties`**
 ```properties
 youtube.api.token=YOUR_YOUTUBE_API_KEY
 ```
@@ -47,15 +47,15 @@ mvn clean install
 
 ```bash
 # 1 — Start the central storage service first
-cd VideoMiner_G7
+cd VideoMiner
 mvn spring-boot:run
 
 # 2 — Start the Vimeo adapter
-cd VimeoMiner_G7
+cd VimeoMiner
 mvn spring-boot:run
 
 # 3 — Start the YouTube adapter
-cd YoutubeMiner_G7
+cd YoutubeMiner
 mvn spring-boot:run
 ```
 

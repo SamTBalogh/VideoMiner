@@ -1,9 +1,9 @@
 package aiss.videominer.controller;
 
 import aiss.videominer.exception.*;
-import aiss.videominer.model.Channel;
 import aiss.videominer.model.Video;
-import aiss.videominer.repository.*;
+import aiss.videominer.service.TokenService;
+import aiss.videominer.service.VideoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -13,18 +13,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Tag(name="Video", description="Video management API")
 @RestController
@@ -32,22 +25,10 @@ import java.util.Optional;
 public class VideoController {
 
     @Autowired
-    ChannelRepository channelRepository;
+    VideoService videoService;
 
     @Autowired
-    VideoRepository videoRepository;
-
-    @Autowired
-    CaptionRepository captionRepository;
-
-    @Autowired
-    CommentRepository commentRepository;
-
-    @Autowired
-    UserRepository userRepository;
-
-    @Autowired
-    TokenRepository tokenRepository;
+    TokenService tokenService;
 
     // GET http://localhost:8080/videoMiner/v1/videos
     @Operation( summary = "Retrieve a list of videos",
@@ -69,48 +50,8 @@ public class VideoController {
                                @RequestParam(required = false) String id, @RequestParam(required = false) String name,
                                @RequestParam(required = false) String description, @RequestParam(required = false) String releaseTime,
                                @RequestParam(required = false) String order) throws TokenRequiredException, TokenNotValidException, BadRequestParameterField {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            Page<Video> pageChannels;
-            Pageable paging;
-            if(order!=null){
-                if(order.startsWith("-")){
-                    paging = PageRequest.of(page, size, Sort.by(order.substring(1)).descending());
-                }
-                else{
-                    paging = PageRequest.of(page, size, Sort.by(order).ascending());
-                }
-            }else{
-                paging = PageRequest.of(page, size);
-            }
-            int count = 0;
-            if (id != null) count++;
-            if (name != null) count++;
-            if (description != null) count++;
-            if (releaseTime != null) count++;
-
-            if (count > 1) {
-                throw new BadRequestParameterField();
-            }
-
-            if (id != null) {
-                pageChannels = videoRepository.findById(id, paging);
-            } else if (name != null) {
-                pageChannels = videoRepository.findByName(name, paging);
-            } else if (description != null) {
-                pageChannels = videoRepository.findByDescriptionContaining(description, paging);
-            } else if (releaseTime != null) {
-                pageChannels = videoRepository.findByReleaseTimeContaining(releaseTime, paging);
-            } else {
-                pageChannels = videoRepository.findAll(paging);
-            }
-            return pageChannels.getContent();
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        return videoService.findAll(page, size, id, name, description, releaseTime, order);
 }
 
     // GET http://localhost:8080/videoMiner/v1/videos/{id}
@@ -125,19 +66,8 @@ public class VideoController {
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("/videos/{id}")
     public Video findById(@PathVariable String id, @RequestHeader HttpHeaders header) throws VideoNotFoundException, TokenRequiredException, TokenNotValidException {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            Optional<Video> video = videoRepository.findById(id);
-            if(!video.isPresent()){
-                throw new VideoNotFoundException();
-            }
-            return video.get();
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        return videoService.findById(id);
     }
 
     // GET http://localhost:8080/videoMiner/v1/channels/{channelId}/videos
@@ -152,19 +82,8 @@ public class VideoController {
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("/channels/{channelId}/videos")
     public List<Video> getAllVideosByChannel(@PathVariable("channelId") String channelId, @RequestHeader HttpHeaders header) throws ChannelNotFoundException, TokenRequiredException, TokenNotValidException {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            Optional<Channel> channel = channelRepository.findById(channelId);
-            if (!channel.isPresent()) {
-                throw new ChannelNotFoundException();
-            }
-            return new ArrayList<>(channel.get().getVideos());
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        return videoService.findByChannel(channelId);
     }
 
     // POST http://localhost:8080/videoMiner/v1/channels/{channelId}/videos
@@ -180,24 +99,8 @@ public class VideoController {
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/channels/{channelId}/videos")
     public List<Video> create(@PathVariable("channelId") String channelId, @Valid @RequestBody Video videoRequest, @RequestHeader HttpHeaders header) throws ChannelNotFoundException, TokenRequiredException, TokenNotValidException, IdCannotBeNull {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            if(videoRequest.getId() == null){
-                throw new IdCannotBeNull();
-            }
-            Optional<Channel> channel = channelRepository.findById(channelId);
-            if (!channel.isPresent()) {
-                throw new ChannelNotFoundException();
-            }
-            channel.get().getVideos().add(videoRequest);
-            channelRepository.save(channel.get());
-            return channel.get().getVideos();
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        return videoService.create(channelId, videoRequest);
     }
 
     // PUT http://localhost:8080/videoMiner/v1/videos/{id}
@@ -213,26 +116,8 @@ public class VideoController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PutMapping("/videos/{id}")
     public void update(@Valid @RequestBody Video updatedVideo, @PathVariable String id, @RequestHeader HttpHeaders header) throws VideoNotFoundException, TokenRequiredException, TokenNotValidException {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            Optional<Video> videoData = videoRepository.findById(id);
-            if (!videoData.isPresent()) {
-                throw new VideoNotFoundException();
-            }
-            Video _video = videoData.get();
-            if(updatedVideo.getName() != null){
-                _video.setName(updatedVideo.getName());
-            }
-            if(updatedVideo.getDescription() != null){
-                _video.setDescription(updatedVideo.getDescription());
-            }
-            videoRepository.save(_video);
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        videoService.update(id, updatedVideo);
     }
 
     // DELETE http://localhost:8080/videoMiner/v1/videos/{id}
@@ -247,19 +132,7 @@ public class VideoController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/videos/{id}")
     public void delete(@PathVariable String id, @RequestHeader HttpHeaders header) throws VideoNotFoundException, TokenRequiredException, TokenNotValidException {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            if(videoRepository.existsById(id)) {
-                videoRepository.deleteById(id);
-            }
-            else {
-                throw new VideoNotFoundException();
-            }
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        videoService.delete(id);
     }
 }

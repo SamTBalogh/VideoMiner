@@ -2,10 +2,8 @@ package aiss.videominer.controller;
 
 import aiss.videominer.exception.*;
 import aiss.videominer.model.Caption;
-import aiss.videominer.model.Video;
-import aiss.videominer.repository.CaptionRepository;
-import aiss.videominer.repository.TokenRepository;
-import aiss.videominer.repository.VideoRepository;
+import aiss.videominer.service.CaptionService;
+import aiss.videominer.service.TokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -16,16 +14,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @Tag(name="Caption", description="Caption management API")
 @RestController
@@ -33,13 +26,10 @@ import java.util.Optional;
 public class CaptionController {
 
     @Autowired
-    CaptionRepository captionRepository;
+    CaptionService captionService;
 
     @Autowired
-    VideoRepository videoRepository;
-
-    @Autowired
-    TokenRepository tokenRepository;
+    TokenService tokenService;
 
     // GET http://localhost:8080/videoMiner/v1/captions
     @Operation( summary = "Retrieve a list of captions",
@@ -60,45 +50,8 @@ public class CaptionController {
                                  @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
                                  @RequestParam(required = false) String id, @RequestParam(required = false) String name,
                                  @RequestParam(required = false) String language, @RequestParam(required = false) String order) throws TokenRequiredException, TokenNotValidException, BadRequestParameterField {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            Page<Caption> pageChannels;
-            Pageable paging;
-            if(order!=null){
-                if(order.startsWith("-")){
-                    paging = PageRequest.of(page, size, Sort.by(order.substring(1)).descending());
-                }
-                else{
-                    paging = PageRequest.of(page, size, Sort.by(order).ascending());
-                }
-            }else{
-                paging = PageRequest.of(page, size);
-            }
-            int count = 0;
-            if (id != null) count++;
-            if (name != null) count++;
-            if (language != null) count++;
-
-            if (count > 1) {
-                throw new BadRequestParameterField();
-            }
-
-            if (id != null) {
-                pageChannels = captionRepository.findById(id, paging);
-            } else if (name != null) {
-                pageChannels = captionRepository.findByName(name, paging);
-            } else if (language != null) {
-                pageChannels = captionRepository.findByLanguage(language, paging);
-            } else {
-                pageChannels = captionRepository.findAll(paging);
-            }
-            return pageChannels.getContent();
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        return captionService.findAll(page, size, id, name, language, order);
     }
 
     // GET http://localhost:8080/videoMiner/v1/captions/{id}
@@ -113,19 +66,8 @@ public class CaptionController {
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("/captions/{id}")
     public Caption findById(@Parameter(description = "Id of the caption to be searched") @PathVariable String id, @RequestHeader HttpHeaders header) throws TokenRequiredException, TokenNotValidException, CaptionNotFoundException {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            Optional<Caption> caption = captionRepository.findById(id);
-            if(!caption.isPresent()){
-                throw new CaptionNotFoundException();
-            }
-            return caption.get();
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        return captionService.findById(id);
     }
 
     // GET http://localhost:8080/videoMiner/v1/videos/{videoId}/captions
@@ -141,19 +83,8 @@ public class CaptionController {
     @GetMapping("/videos/{videoId}/captions")
     public List<Caption> getAllCaptionsByVideo(@Parameter (description = "The Id of the video which captions are to be retrieved") @PathVariable("videoId") String videoId,
                                                @RequestHeader HttpHeaders header) throws VideoNotFoundException, TokenRequiredException, TokenNotValidException {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            Optional<Video> video = videoRepository.findById(videoId);
-            if (!video.isPresent()) {
-                throw new VideoNotFoundException();
-            }
-            return video.get().getCaptions();
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        return captionService.findByVideo(videoId);
     }
 
     // POST http://localhost:8080/videoMiner/v1/videos/{videoId}/captions
@@ -170,24 +101,8 @@ public class CaptionController {
     @PostMapping("/videos/{videoId}/captions")
     public List<Caption> create(@Parameter(description = "The ID of the video to which the caption is added") @PathVariable("videoId") String videoId,
                                 @Valid @RequestBody Caption caption, @RequestHeader HttpHeaders header) throws VideoNotFoundException, TokenRequiredException, TokenNotValidException, IdCannotBeNull {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            if(caption.getId() == null){
-                throw new IdCannotBeNull();
-            }
-            Optional<Video> video = videoRepository.findById(videoId);
-            if (!video.isPresent()) {
-                throw new VideoNotFoundException();
-            }
-            video.get().getCaptions().add(caption);
-            videoRepository.save(video.get());
-            return video.get().getCaptions();
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        return captionService.create(videoId, caption);
     }
 
     // PUT http://localhost:8080/videoMiner/v1/captions/{id}
@@ -204,26 +119,8 @@ public class CaptionController {
     public void update(@Valid @RequestBody Caption updatedCaption,
                        @Parameter(description = "Id of the caption to be updated") @PathVariable String id,
                        @RequestHeader HttpHeaders header) throws CaptionNotFoundException, TokenRequiredException, TokenNotValidException {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            Optional<Caption> captionData = captionRepository.findById(id);
-            if(!captionData.isPresent()){
-                throw new CaptionNotFoundException();
-            }
-            Caption _caption = captionData.get();
-            if(updatedCaption.getName()!=null){
-                _caption.setName(updatedCaption.getName());
-            }
-            if(updatedCaption.getLanguage()!=null) {
-                _caption.setLanguage(updatedCaption.getLanguage());
-            }
-            captionRepository.save(_caption);
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        captionService.update(id, updatedCaption);
     }
 
     // DELETE http://localhost:8080/videoMiner/v1/captions/{id}
@@ -239,19 +136,7 @@ public class CaptionController {
     @DeleteMapping("/captions/{id}")
     public void delete(@Parameter(description = "Id of the caption to be deleted") @PathVariable String id,
                        @RequestHeader HttpHeaders header) throws TokenRequiredException, TokenNotValidException, CaptionNotFoundException {
-        String token = header.getFirst("Authorization");
-        if (token==null) {
-            throw new TokenRequiredException();
-        }
-        else if(tokenRepository.existsById(token)) {
-            if(captionRepository.existsById(id)) {
-                captionRepository.deleteById(id);
-            }
-            else {
-                throw new CaptionNotFoundException();
-            }
-        } else {
-            throw new TokenNotValidException();
-        }
+        tokenService.validate(header);
+        captionService.delete(id);
     }
 }
