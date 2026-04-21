@@ -56,6 +56,7 @@ spring-shell.log
 .env
 application-local.properties
 application-secret.properties
+application-dev.properties
 
 # OS
 .DS_Store

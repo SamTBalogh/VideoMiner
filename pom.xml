@@ -14,16 +14,16 @@
     <artifactId>videominer-system-g7</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>VideoMiner System G7</name>
+    <name>VideoMiner System</name>
     <description>
         Monorepo that groups VideoMiner (central storage), VimeoMiner (Vimeo adapter)
         and YoutubeMiner (YouTube adapter) into a single Maven multi-module project.
     </description>
 
     <modules>
-        <module>VideoMiner_G7</module>
-        <module>VimeoMiner_G7</module>
-        <module>YoutubeMiner_G7</module>
+        <module>VideoMiner</module>
+        <module>VimeoMiner</module>
+        <module>YoutubeMiner</module>
     </modules>
 
     <properties>
