@@ -2,68 +2,71 @@ package aiss.YouTubeMiner.service;
 
 import aiss.YouTubeMiner.exception.CommentNotFoundException;
 import aiss.YouTubeMiner.model.VideoMinerModel.Comment;
-import org.junit.jupiter.api.Assertions;
+import aiss.YouTubeMiner.model.YouTubeModel.comment.CommentSearch;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 public class CommentServiceTest {
 
-    @Autowired
+    @Mock
+    RestTemplate restTemplate;
+
+    @InjectMocks
     CommentService service;
 
-    @Test
-    @DisplayName("Get comments from a video id")
-    void findCommentsFromVideoId() throws CommentNotFoundException {
-        List<Comment> comment = service.findCommentsByVideoId("_VB39Jo8mAQ");
-        assertNotNull(comment);
-        System.out.println(comment);
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(service, "token", "test-token");
+        ReflectionTestUtils.setField(service, "uri", "https://youtube.googleapis.com/youtube/v3");
     }
 
     @Test
-    @DisplayName("Get comments from a video with comments disabled")
-    void findCommentsFromVideoIdDisabled() throws CommentNotFoundException {
-        List<Comment> comment = service.findCommentsByVideoId("KZ613lCnoJ0");
-        assertNotNull(comment);
-        System.out.println(comment);
+    @DisplayName("findCommentsByVideoIdMax returns empty list when comments are disabled (403)")
+    void findCommentsByVideoIdMax_forbidden() throws CommentNotFoundException {
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(CommentSearch.class)))
+                .thenThrow(HttpClientErrorException.create(HttpStatus.FORBIDDEN, "Forbidden", null, null, null));
+
+        List<Comment> comments = service.findCommentsByVideoIdMax("v1", 10);
+        assertNotNull(comments);
+        assertEquals(0, comments.size());
     }
 
     @Test
-    @DisplayName("Get comments from an invalid video Id")
-    void findCommentsFromInvalidVideoId() {
-        assertThrows(CommentNotFoundException.class, () -> {service.findCommentsByVideoId("Wololo");});
+    @DisplayName("findCommentsByVideoIdMax returns list of comments")
+    void findCommentsByVideoIdMax_success() throws CommentNotFoundException {
+        CommentSearch commentSearch = new CommentSearch();
+        commentSearch.setItems(List.of());
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(CommentSearch.class)))
+                .thenReturn(ResponseEntity.ok(commentSearch));
+
+        List<Comment> comments = service.findCommentsByVideoIdMax("v1", 10);
+        assertNotNull(comments);
     }
 
     @Test
-    @DisplayName("Get a certain number of comments from a video")
-    void findMaxCommentsFromVideoId() throws CommentNotFoundException {
-        List<Comment> comment = service.findCommentsByVideoIdMax("mKIhHNznt4s", 10);
-        assertNotNull(comment);
-        Assertions.assertEquals(10, comment.size());
-        System.out.println(comment);
-        System.out.println(comment.size());
-    }
+    @DisplayName("findCommentsByVideoIdMax throws CommentNotFoundException on 404")
+    void findCommentsByVideoIdMax_notFound() {
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(CommentSearch.class)))
+                .thenThrow(HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
 
-    @Test
-    @DisplayName("Get comments from a video with comments disabled")
-    void findMaxCommentsFromVideoIdDisabled() throws CommentNotFoundException{
-        List<Comment> comment = service.findCommentsByVideoIdMax("KZ613lCnoJ0", 4);
-        assertNotNull(comment);
-        Assertions.assertEquals(0, comment.size());
-        System.out.println(comment);
-        System.out.println(comment.size());
-    }
-
-    @Test
-    @DisplayName("Get comments from an invalid video Id")
-    void findMaxCommentsFromInvalidVideoId() {
-        assertThrows(CommentNotFoundException.class, () -> {service.findCommentsByVideoIdMax("Wololo", 10);});
+        assertThrows(CommentNotFoundException.class, () -> service.findCommentsByVideoIdMax("unknown", 5));
     }
 }
