@@ -1,0 +1,15 @@
+services:
+  videominer:
+    environment:
+      SPRING_JPA_SHOW_SQL: "false"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    ports:
+      - "${VIDEOMINER_PORT:-8080}:8080"
+
+  vimeominer:
+    ports:
+      - "${VIMEOMINER_PORT:-8081}:8081"
+
+  youtubeminer:
+    ports:
+      - "${YOUTUBEMINER_PORT:-8082}:8082"

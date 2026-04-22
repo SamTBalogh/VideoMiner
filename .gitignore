@@ -54,6 +54,19 @@ spring-shell.log
 # API tokens / secrets (never commit these)
 *.env
 .env
+.env.*
+!.env.example
+!.env.*.example
+!.env.dev.example
+!.env.prod.example
+.envrc
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+id_rsa
+id_ed25519
 application-local.properties
 application-secret.properties
 application-dev.properties

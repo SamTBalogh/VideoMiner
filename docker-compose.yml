@@ -1,0 +1,65 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: videominer-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-videominer}
+      POSTGRES_USER: ${POSTGRES_USER:-videominer}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-videominer}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-videominer} -d ${POSTGRES_DB:-videominer}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  videominer:
+    build:
+      context: .
+      dockerfile: VideoMiner/Dockerfile
+    container_name: videominer-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-videominer}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-videominer}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-videominer}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-update}
+      SPRING_JPA_SHOW_SQL: ${SPRING_JPA_SHOW_SQL:-false}
+    restart: unless-stopped
+
+  vimeominer:
+    build:
+      context: .
+      dockerfile: VimeoMiner/Dockerfile
+    container_name: videominer-vimeo
+    depends_on:
+      videominer:
+        condition: service_started
+    environment:
+      SERVER_PORT: 8081
+      VIMEO_TOKEN: ${VIMEO_TOKEN:-}
+      VIDEOMINER_URL: http://videominer:8080/videoMiner/v1
+    restart: unless-stopped
+
+  youtubeminer:
+    build:
+      context: .
+      dockerfile: YoutubeMiner/Dockerfile
+    container_name: videominer-youtube
+    depends_on:
+      videominer:
+        condition: service_started
+    environment:
+      SERVER_PORT: 8082
+      YOUTUBE_API_TOKEN: ${YOUTUBE_API_TOKEN:-}
+      VIDEOMINER_URL: http://videominer:8080/videoMiner/v1
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

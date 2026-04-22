@@ -1,62 +1,79 @@
 # VideoMiner System — G7
 
-Monorepo that contains three Spring Boot microservices that together form the **VideoMiner** platform: a system for harvesting video content from external APIs and storing it in a unified format.
+Monorepo with three Spring Boot microservices and one PostgreSQL database.
 
 ## Architecture
 
 ```
-Vimeo API ──────► VimeoMiner   (port 8081) ──┐
-                                                  ├──► VideoMiner (port 8080)
-YouTube API ────► YoutubeMiner (port 8082) ──┘        (H2 database)
+Vimeo API ──────► VimeoMiner   (8081) ──┐
+                                        ├──► VideoMiner (8080) ───► PostgreSQL (5432)
+YouTube API ────► YoutubeMiner (8082) ──┘
 ```
 
 | Module | Description |
 |---|---|
-| `VideoMiner` | Central REST API. Stores channels, videos, comments, captions and users in an H2 database. |
-| `VimeoMiner` | Adapter that fetches data from the **Vimeo API** and posts it to VideoMiner. |
-| `YoutubeMiner` | Adapter that fetches data from the **YouTube Data API v3** and posts it to VideoMiner. |
+| `VideoMiner` | Central REST API. Persists channels, videos, comments, captions and users in PostgreSQL. |
+| `VimeoMiner` | Adapter that fetches data from the Vimeo API and publishes it to VideoMiner. |
+| `YoutubeMiner` | Adapter that fetches data from the YouTube Data API v3 and publishes it to VideoMiner. |
 
 ## Prerequisites
 
-- Java 17+
-- Maven 3.9+
+- Docker
+- Docker Compose (`docker compose`)
 
-## Configuration
+## Environments
 
-Before running the adapter services, set your API tokens in their `application.properties` files:
+- `docker-compose.yml`: shared/base services
+- `docker-compose.dev.yml`: development overrides
+- `docker-compose.prod.yml`: production overrides
 
-**`VimeoMiner/src/main/resources/application.properties`**
-```properties
-vimeo.token=YOUR_VIMEO_TOKEN
-```
+## Environment Variables
 
-**`YoutubeMiner/src/main/resources/application.properties`**
-```properties
-youtube.api.token=YOUR_YOUTUBE_API_KEY
-```
-
-## Build & Run
-
-### Build all modules from the root
+Create env files from the templates:
 
 ```bash
-mvn clean install
+cp .env.dev.example .env.dev
+cp .env.prod.example .env.prod
 ```
 
-### Run each service (in separate terminals)
+Fill at least:
+
+- `VIMEO_TOKEN`
+- `YOUTUBE_API_TOKEN`
+- `POSTGRES_PASSWORD` (especially in production)
+
+## Run Development
 
 ```bash
-# 1 — Start the central storage service first
-cd VideoMiner
-mvn spring-boot:run
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
 
-# 2 — Start the Vimeo adapter
-cd VimeoMiner
-mvn spring-boot:run
+This starts:
 
-# 3 — Start the YouTube adapter
-cd YoutubeMiner
-mvn spring-boot:run
+- PostgreSQL exposed on `localhost:5432`
+- VideoMiner on `localhost:8080`
+- VimeoMiner on `localhost:8081`
+- YoutubeMiner on `localhost:8082`
+
+## Run Production
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+```
+
+In production mode, PostgreSQL is internal-only (not exposed to host).
+
+## Stop Environment
+
+```bash
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml down
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml down
+```
+
+To also remove PostgreSQL data volume:
+
+```bash
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml down -v
 ```
 
 ## API Documentation (Swagger UI)
@@ -66,7 +83,3 @@ mvn spring-boot:run
 | VideoMiner | http://localhost:8080/swagger-ui/index.html |
 | VimeoMiner | http://localhost:8081/swagger-ui/index.html |
 | YoutubeMiner | http://localhost:8082/swagger-ui/index.html |
-
-## H2 Console
-
-The VideoMiner database can be inspected at: http://localhost:8080/h2-ui
