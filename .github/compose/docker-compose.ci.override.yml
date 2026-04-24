@@ -1,0 +1,12 @@
+services:
+  videominer:
+    ports:
+      - "8080:8080"
+
+  vimeominer:
+    ports:
+      - "8081:8081"
+
+  youtubeminer:
+    ports:
+      - "8082:8082"

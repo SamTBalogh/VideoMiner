@@ -1,0 +1,84 @@
+name: Container Deploy Check (develop -> main)
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  deploy-containers:
+    name: Deploy Containers And Check Health
+    if: github.event.pull_request.head.ref == 'develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      POSTGRES_DB: videominer_ci
+      POSTGRES_USER: videominer
+      POSTGRES_PASSWORD: videominer
+      VIDEOMINER_TOKEN_PEPPER: ci-token-pepper-unsafe-for-production
+      VIDEOMINER_TOKEN_MANAGEMENT_KEY: ci-token-management-key-unsafe-for-production
+      VIDEOMINER_TOKEN_DEFAULT_TTL_HOURS: "24"
+      VIDEOMINER_TOKEN_MIN_TTL_HOURS: "1"
+      VIDEOMINER_TOKEN_MAX_TTL_HOURS: "720"
+      VIMEO_TOKEN: ""
+      YOUTUBE_API_TOKEN: ""
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and start containers
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f .github/compose/docker-compose.ci.override.yml \
+            up -d --build postgres videominer vimeominer youtubeminer
+
+      - name: Wait for HTTP availability
+        run: |
+          set -euo pipefail
+
+          wait_http() {
+            local name="$1"
+            local url="$2"
+            local status=""
+
+            for _ in {1..60}; do
+              status="$(curl -s -o /dev/null -w "%{http_code}" "${url}" || true)"
+              if [[ "${status}" =~ ^[0-9]{3}$ ]] && [ "${status}" -lt 400 ]; then
+                echo "${name} reachable at ${url} (HTTP ${status})"
+                return 0
+              fi
+              sleep 5
+            done
+
+            echo "ERROR: ${name} not reachable at ${url}. Last status: ${status}" >&2
+            return 1
+          }
+
+          wait_http "VideoMiner" "http://localhost:8080/"
+          wait_http "VimeoMiner" "http://localhost:8081/"
+          wait_http "YoutubeMiner" "http://localhost:8082/"
+
+      - name: Show container status
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f .github/compose/docker-compose.ci.override.yml \
+            ps
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f .github/compose/docker-compose.ci.override.yml \
+            logs --no-color
+
+      - name: Stop containers
+        if: always()
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f .github/compose/docker-compose.ci.override.yml \
+            down -v
