@@ -8,7 +8,7 @@ const links = [
 ];
 
 export function AppLayout() {
-  const { settings, setToken, setBaseUrl, resetBaseUrls } = useApiSettings();
+  const { settings, setToken, setManagementKey, setBaseUrl, resetBaseUrls } = useApiSettings();
 
   return (
     <div className="app-shell">
@@ -47,9 +47,17 @@ export function AppLayout() {
           <label>
             <span>Authorization Token</span>
             <input
-              placeholder="my-secret-token"
+              placeholder="Bearer <token>"
               value={settings.token}
               onChange={(event) => setToken(event.target.value)}
+            />
+          </label>
+          <label>
+            <span>Token Management Key</span>
+            <input
+              placeholder="X-Token-Management-Key"
+              value={settings.managementKey}
+              onChange={(event) => setManagementKey(event.target.value)}
             />
           </label>
           <label>

@@ -46,6 +46,18 @@ function buildQueryString(queryValues: Record<string, string>) {
   return value ? `?${value}` : "";
 }
 
+function normalizeBearerToken(token: string) {
+  const trimmed = token.trim();
+  if (!trimmed) return "";
+
+  const bearerMatch = /^bearer\s+(.+)$/i.exec(trimmed);
+  if (!bearerMatch) return `Bearer ${trimmed}`;
+
+  const bearerValue = bearerMatch[1]?.trim();
+  if (!bearerValue) return "";
+  return `Bearer ${bearerValue}`;
+}
+
 function buildHeaders(input: ExecuteEndpointInput, hasBody: boolean) {
   const headers: Record<string, string> = {
     Accept: "application/json, text/plain, */*",
@@ -54,7 +66,7 @@ function buildHeaders(input: ExecuteEndpointInput, hasBody: boolean) {
   if (hasBody) headers["Content-Type"] = "application/json";
 
   const { endpoint, settings } = input;
-  const token = settings.token.trim();
+  const token = normalizeBearerToken(settings.token);
 
   if (endpoint.authMode === "required") {
     if (!token) {
@@ -67,6 +79,16 @@ function buildHeaders(input: ExecuteEndpointInput, hasBody: boolean) {
 
   if (endpoint.authMode === "optional" && input.sendOptionalAuth !== false && token) {
     headers.Authorization = token;
+  }
+
+  if (endpoint.requiresManagementKey) {
+    const managementKey = settings.managementKey.trim();
+    if (!managementKey) {
+      throw new Error(
+        "This endpoint requires X-Token-Management-Key. Set it in Connection Settings.",
+      );
+    }
+    headers["X-Token-Management-Key"] = managementKey;
   }
 
   return headers;

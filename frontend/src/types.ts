@@ -21,11 +21,13 @@ export interface EndpointDefinition {
   pathParams?: string[];
   queryParams?: EndpointQueryParam[];
   authMode: AuthMode;
+  requiresManagementKey?: boolean;
   bodyTemplate?: string;
 }
 
 export interface ApiSettings {
   token: string;
+  managementKey: string;
   baseUrls: Record<ServiceId, string>;
 }
 

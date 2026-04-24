@@ -42,6 +42,8 @@ Fill at least:
 - `VIMEO_TOKEN`
 - `YOUTUBE_API_TOKEN`
 - `POSTGRES_PASSWORD` (especially in production)
+- `VIDEOMINER_TOKEN_PEPPER`
+- `VIDEOMINER_TOKEN_MANAGEMENT_KEY`
 
 ## Run Development
 

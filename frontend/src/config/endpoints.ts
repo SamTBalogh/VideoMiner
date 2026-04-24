@@ -229,9 +229,24 @@ export const ENDPOINTS: EndpointDefinition[] = [
     method: "POST",
     label: "VideoMiner: create token",
     pathTemplate: "/videoMiner/v1/token",
-    description: "Registers a token that can be used in Authorization headers.",
+    description:
+      "Issues a new internal token. Requires X-Token-Management-Key in Connection Settings.",
     authMode: "none",
-    bodyTemplate: `{"id":"my-secret-token"}`,
+    requiresManagementKey: true,
+    bodyTemplate: `{"ttlHours":24}`,
+  },
+  {
+    id: "vm-revoke-token",
+    service: "videominer",
+    section: "storage",
+    method: "DELETE",
+    label: "VideoMiner: revoke token",
+    pathTemplate: "/videoMiner/v1/token/{id}",
+    description:
+      "Revokes a token by ID. Requires X-Token-Management-Key in Connection Settings.",
+    pathParams: ["id"],
+    authMode: "none",
+    requiresManagementKey: true,
   },
   {
     id: "vm-list-channels",

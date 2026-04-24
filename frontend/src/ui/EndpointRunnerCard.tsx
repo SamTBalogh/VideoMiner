@@ -61,9 +61,16 @@ export function EndpointRunnerCard({
 
   const canSubmit = useMemo(() => {
     if (mutation.isPending) return false;
-    if (endpoint.authMode !== "required") return true;
-    return settings.token.trim().length > 0;
-  }, [endpoint.authMode, mutation.isPending, settings.token]);
+    if (endpoint.authMode === "required" && !settings.token.trim()) return false;
+    if (endpoint.requiresManagementKey && !settings.managementKey.trim()) return false;
+    return true;
+  }, [
+    endpoint.authMode,
+    endpoint.requiresManagementKey,
+    mutation.isPending,
+    settings.managementKey,
+    settings.token,
+  ]);
 
   const response = mutation.data;
   const responseClass = response?.ok ? "status status--ok" : "status status--error";
@@ -144,6 +151,12 @@ export function EndpointRunnerCard({
       {endpoint.authMode === "required" && !settings.token.trim() && (
         <div className="warning">
           This endpoint requires a token. Set it in Connection Settings.
+        </div>
+      )}
+
+      {endpoint.requiresManagementKey && !settings.managementKey.trim() && (
+        <div className="warning">
+          This endpoint requires X-Token-Management-Key. Set it in Connection Settings.
         </div>
       )}
 

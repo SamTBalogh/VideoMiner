@@ -21,8 +21,8 @@ public class VideoMinerPublisherService {
     public void publish(Channel channel, String token) throws ForbiddenException {
         try {
             HttpHeaders headers = new HttpHeaders();
-            if (token != null) {
-                headers.add("Authorization", token);
+            if (token != null && !token.isBlank()) {
+                headers.add("Authorization", normalizeBearerToken(token));
             }
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<Channel> requestEntity = new HttpEntity<>(channel, headers);
@@ -30,5 +30,14 @@ public class VideoMinerPublisherService {
         } catch (HttpClientErrorException e) {
             throw new ForbiddenException(ForbiddenException.parseVideo(e.getMessage()));
         }
+    }
+
+    private String normalizeBearerToken(String token) {
+        String trimmed = token.trim();
+        if (trimmed.regionMatches(true, 0, "Bearer ", 0, "Bearer ".length())) {
+            String value = trimmed.substring("Bearer ".length()).trim();
+            return "Bearer " + value;
+        }
+        return "Bearer " + trimmed;
     }
 }

@@ -12,6 +12,7 @@ import type { ApiSettings, ServiceId } from "../types";
 interface ApiSettingsContextValue {
   settings: ApiSettings;
   setToken: (token: string) => void;
+  setManagementKey: (managementKey: string) => void;
   setBaseUrl: (service: ServiceId, value: string) => void;
   resetBaseUrls: () => void;
 }
@@ -20,6 +21,7 @@ const STORAGE_KEY = "videominer.frontend.settings";
 
 const defaultSettings: ApiSettings = {
   token: "",
+  managementKey: "",
   baseUrls: DEFAULT_BASE_URLS,
 };
 
@@ -33,6 +35,7 @@ function readSettingsFromStorage(): ApiSettings {
     const parsed = JSON.parse(stored) as Partial<ApiSettings>;
     return {
       token: typeof parsed.token === "string" ? parsed.token : "",
+      managementKey: typeof parsed.managementKey === "string" ? parsed.managementKey : "",
       baseUrls: {
         ...DEFAULT_BASE_URLS,
         ...(parsed.baseUrls ?? {}),
@@ -59,6 +62,11 @@ export function ApiSettingsProvider({ children }: PropsWithChildren) {
         setSettings((current) => ({
           ...current,
           token,
+        })),
+      setManagementKey: (managementKey) =>
+        setSettings((current) => ({
+          ...current,
+          managementKey,
         })),
       setBaseUrl: (service, value) =>
         setSettings((current) => ({
