@@ -48,6 +48,46 @@ Fill at least:
 docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
+In development, Java services run with source bind mounts plus `scripts/dev-java-runner.sh` in each microservice container.
+This means source changes in `src/main` are compiled automatically and applied without restarting containers manually.
+
+If you want to tweak the polling interval, set `DEV_WATCH_INTERVAL_SECONDS` in the container environment.
+
+For best file-change detection in WSL, keep the repository inside the Linux filesystem (example: `~/projects/VideoMiner`) instead of `/mnt/c/...`.
+
+If you moved the project or changed the compose setup, force recreation once:
+
+```bash
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml up --build --force-recreate
+```
+
+Or use the helper script:
+
+```bash
+bash scripts/dev-recreate-clean.sh
+```
+
+To recreate clean and also reset DB volume:
+
+```bash
+bash scripts/dev-recreate-clean.sh --drop-db
+```
+
+To recreate only modified microservices (based on current git changes):
+
+```bash
+bash scripts/dev-recreate-changed.sh
+```
+
+To recreate only one specific microservice:
+
+```bash
+bash scripts/dev-recreate-changed.sh --service youtubeminer
+```
+
+`dev-recreate-changed.sh` recreates only target microservices (`--no-deps`).
+If required dependencies are stopped, it warns and exits.
+
 This starts:
 
 - PostgreSQL exposed on `localhost:5432`

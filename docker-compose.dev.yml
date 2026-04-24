@@ -4,16 +4,51 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
 
   videominer:
+    build:
+      target: build
+    working_dir: /workspace
+    command: ["bash", "/workspace/scripts/dev-java-runner.sh", "VideoMiner"]
+    volumes:
+      - ./:/workspace
+      - maven_cache:/root/.m2
     environment:
+      DEV_WATCH_INTERVAL_SECONDS: ${DEV_WATCH_INTERVAL_SECONDS:-2}
       SPRING_JPA_SHOW_SQL: "true"
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_DEVTOOLS_RESTART_POLL_INTERVAL: 2s
+      SPRING_DEVTOOLS_RESTART_QUIET_PERIOD: 1s
     ports:
       - "${VIDEOMINER_PORT:-8080}:8080"
 
   vimeominer:
+    build:
+      target: build
+    working_dir: /workspace
+    command: ["bash", "/workspace/scripts/dev-java-runner.sh", "VimeoMiner"]
+    volumes:
+      - ./:/workspace
+      - maven_cache:/root/.m2
+    environment:
+      DEV_WATCH_INTERVAL_SECONDS: ${DEV_WATCH_INTERVAL_SECONDS:-2}
+      SPRING_DEVTOOLS_RESTART_POLL_INTERVAL: 2s
+      SPRING_DEVTOOLS_RESTART_QUIET_PERIOD: 1s
     ports:
       - "${VIMEOMINER_PORT:-8081}:8081"
 
   youtubeminer:
+    build:
+      target: build
+    working_dir: /workspace
+    command: ["bash", "/workspace/scripts/dev-java-runner.sh", "YoutubeMiner"]
+    volumes:
+      - ./:/workspace
+      - maven_cache:/root/.m2
+    environment:
+      DEV_WATCH_INTERVAL_SECONDS: ${DEV_WATCH_INTERVAL_SECONDS:-2}
+      SPRING_DEVTOOLS_RESTART_POLL_INTERVAL: 2s
+      SPRING_DEVTOOLS_RESTART_QUIET_PERIOD: 1s
     ports:
       - "${YOUTUBEMINER_PORT:-8082}:8082"
+
+volumes:
+  maven_cache:
