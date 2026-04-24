@@ -50,5 +50,30 @@ services:
     ports:
       - "${YOUTUBEMINER_PORT:-8082}:8082"
 
+  frontend:
+    image: node:22-alpine
+    container_name: videominer-frontend-dev
+    working_dir: /workspace/frontend
+    command: ["sh", "/workspace/frontend/scripts/dev-entrypoint.sh"]
+    volumes:
+      - ./:/workspace
+      - frontend_node_modules:/workspace/frontend/node_modules
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: ${FRONTEND_CHOKIDAR_INTERVAL:-300}
+      VITE_VIDEOMINER_TARGET: http://videominer:8080
+      VITE_VIMEOMINER_TARGET: http://vimeominer:8081
+      VITE_YOUTUBEMINER_TARGET: http://youtubeminer:8082
+    depends_on:
+      videominer:
+        condition: service_started
+      vimeominer:
+        condition: service_started
+      youtubeminer:
+        condition: service_started
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+
 volumes:
   maven_cache:
+  frontend_node_modules:

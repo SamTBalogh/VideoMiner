@@ -46,6 +46,10 @@ nbdist/
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
+frontend/dist/
+frontend/node_modules/
+frontend/.vite/
+*.tsbuildinfo
 
 # Spring Boot
 *.log

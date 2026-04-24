@@ -1,4 +1,4 @@
-FROM maven:3.9.11-eclipse-temurin-17 AS build
+FROM maven:3.9.11-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
 COPY pom.xml ./
@@ -15,7 +15,7 @@ COPY YoutubeMiner YoutubeMiner
 RUN mvn -B -ntp -pl VideoMiner -am -DskipTests clean package && \
     find VideoMiner/target -maxdepth 1 -name "*.jar" ! -name "*original*" -exec cp {} /workspace/app.jar \;
 
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
 COPY --from=build /workspace/app.jar app.jar
