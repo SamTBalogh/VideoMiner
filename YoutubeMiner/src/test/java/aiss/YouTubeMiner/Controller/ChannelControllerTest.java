@@ -70,7 +70,8 @@ class ChannelControllerTest {
         when(channelAssemblerService.buildFullChannelV1(eq("ch1"), anyInt(), anyInt()))
                 .thenReturn(sampleChannel());
 
-        mockMvc.perform(post("/youTubeMiner/v1/ch1"))
+        mockMvc.perform(post("/youTubeMiner/v1/ch1")
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value("ch1"));
     }
@@ -83,7 +84,8 @@ class ChannelControllerTest {
         org.mockito.Mockito.doThrow(new ForbiddenException("Unauthorized"))
                 .when(videoMinerPublisherService).publish(any(), any());
 
-        mockMvc.perform(post("/youTubeMiner/v1/ch1"))
+        mockMvc.perform(post("/youTubeMiner/v1/ch1")
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isForbidden());
     }
 
@@ -106,7 +108,9 @@ class ChannelControllerTest {
         when(channelAssemblerService.buildFullChannelListV1(eq("test"), anyInt(), anyInt(), anyInt()))
                 .thenReturn(List.of(sampleChannel()));
 
-        mockMvc.perform(post("/youTubeMiner/v1/channels").param("name", "test"))
+        mockMvc.perform(post("/youTubeMiner/v1/channels")
+                        .param("name", "test")
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$[0].id").value("ch1"));
     }
@@ -130,7 +134,8 @@ class ChannelControllerTest {
         when(channelAssemblerService.buildFullChannelV2(eq("ch1"), anyInt(), anyInt()))
                 .thenReturn(sampleChannel());
 
-        mockMvc.perform(post("/youTubeMiner/v2/ch1"))
+        mockMvc.perform(post("/youTubeMiner/v2/ch1")
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value("ch1"));
     }
@@ -154,7 +159,9 @@ class ChannelControllerTest {
         when(channelAssemblerService.buildFullChannelListV2(eq("test"), anyInt(), anyInt(), anyInt()))
                 .thenReturn(List.of(sampleChannel()));
 
-        mockMvc.perform(post("/youTubeMiner/v2/channels").param("name", "test"))
+        mockMvc.perform(post("/youTubeMiner/v2/channels")
+                        .param("name", "test")
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$[0].id").value("ch1"));
     }

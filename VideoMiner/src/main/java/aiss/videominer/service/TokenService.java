@@ -135,8 +135,8 @@ public class TokenService {
             throw new TokenManagementForbiddenException();
         }
 
-        byte[] provided = managementKey.trim().getBytes(StandardCharsets.UTF_8);
-        byte[] expected = tokenAuthProperties.getManagementKey().trim().getBytes(StandardCharsets.UTF_8);
+        byte[] provided = managementKey.getBytes(StandardCharsets.UTF_8);
+        byte[] expected = tokenAuthProperties.getManagementKey().getBytes(StandardCharsets.UTF_8);
         if (!MessageDigest.isEqual(provided, expected)) {
             throw new TokenManagementForbiddenException();
         }

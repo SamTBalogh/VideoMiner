@@ -45,7 +45,7 @@ public class ChannelController {
     public Channel PostChannelVideo(@PathVariable("id") String id,
         @RequestParam(name = "maxVideos", defaultValue = "10") Integer maxVideos,
         @RequestParam(name = "maxComments", defaultValue = "10") Integer maxComments,
-        @RequestHeader(name = "Authorization", required = false) String token)
+        @RequestHeader(name = "Authorization", required = true) String token)
             throws ChannelNotFoundException, CaptionsNotFoundException, CommentsNotFoundException,
                    VideosNotFoundException, ForbiddenException, ResponseException {
         try {

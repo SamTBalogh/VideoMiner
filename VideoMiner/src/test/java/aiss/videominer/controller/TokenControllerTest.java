@@ -1,6 +1,5 @@
 package aiss.videominer.controller;
 
-import aiss.videominer.exception.TokenManagementForbiddenException;
 import aiss.videominer.model.auth.TokenIssueResponse;
 import aiss.videominer.service.TokenService;
 import org.junit.jupiter.api.Test;
@@ -14,7 +13,6 @@ import java.time.Instant;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -54,13 +52,11 @@ class TokenControllerTest {
     }
 
     @Test
-    void issueToken_withoutManagementHeader_returns403() throws Exception {
-        doThrow(TokenManagementForbiddenException.class).when(tokenService).issueToken(any(), any());
-
+    void issueToken_withoutManagementHeader_returns400() throws Exception {
         mockMvc.perform(post("/videoMiner/v1/token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"ttlHours\":24}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isBadRequest());
     }
 
     @Test

@@ -34,6 +34,16 @@ if [[ -z "${MANAGEMENT_KEY}" ]]; then
   exit 1
 fi
 
+if ! [[ "${TOKEN_TTL_HOURS}" =~ ^[0-9]+$ ]]; then
+  echo "ERROR: TOKEN_TTL_HOURS must be a positive integer." >&2
+  exit 1
+fi
+
+if (( TOKEN_TTL_HOURS < 1 )); then
+  echo "ERROR: TOKEN_TTL_HOURS must be greater than or equal to 1." >&2
+  exit 1
+fi
+
 tmp_issue_1="$(mktemp)"
 tmp_issue_2="$(mktemp)"
 trap 'rm -f "${tmp_issue_1}" "${tmp_issue_2}"' EXIT

@@ -38,7 +38,7 @@ public class TokenController {
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/token")
     public TokenIssueResponse issueToken(
-            @RequestHeader(name = TokenService.MANAGEMENT_HEADER, required = false) String managementKey,
+            @RequestHeader(name = TokenService.MANAGEMENT_HEADER, required = true) String managementKey,
             @Valid @RequestBody(required = false) TokenIssueRequest request
     ) throws TokenManagementForbiddenException, TokenTtlOutOfRangeException {
         return tokenService.issueToken(managementKey, request);
@@ -57,7 +57,7 @@ public class TokenController {
     @DeleteMapping("/token/{id}")
     public void revokeToken(
             @PathVariable("id") String tokenId,
-            @RequestHeader(name = TokenService.MANAGEMENT_HEADER, required = false) String managementKey
+            @RequestHeader(name = TokenService.MANAGEMENT_HEADER, required = true) String managementKey
     ) throws TokenManagementForbiddenException, TokenNotFoundException {
         tokenService.revokeToken(tokenId, managementKey);
     }

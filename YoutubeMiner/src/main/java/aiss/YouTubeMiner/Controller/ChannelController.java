@@ -45,7 +45,7 @@ public class ChannelController {
     public Channel PostChannelVideo(@PathVariable("id") String id,
                                     @RequestParam(name = "maxVideos", defaultValue = "10") Integer maxVideos,
                                     @RequestParam(name = "maxComments", defaultValue = "10") Integer maxComments,
-                                    @RequestHeader(name = "Authorization", required = false) String token)
+                                    @RequestHeader(name = "Authorization", required = true) String token)
             throws ChannelNotFoundException, ForbiddenException, VideoNotFoundChannelIDException, CaptionNotFoundException, CommentNotFoundException {
         try {
             Channel channel = channelAssemblerService.buildFullChannelV1(id, maxVideos, maxComments);
@@ -100,7 +100,7 @@ public class ChannelController {
                                                @RequestParam(name = "maxChannels", defaultValue = "3") Integer maxChannels,
                                                @RequestParam(name = "maxVideos", defaultValue = "10") Integer maxVideos,
                                                @RequestParam(name = "maxComments", defaultValue = "10") Integer maxComments,
-                                               @RequestHeader(name = "Authorization", required = false) String token)
+                                               @RequestHeader(name = "Authorization", required = true) String token)
             throws ForbiddenException, VideoNotFoundChannelIDException, CaptionNotFoundException, ListChannelsNotFoundException, CommentNotFoundException, ChannelNotFoundException {
         try {
             List<Channel> channelList = channelAssemblerService.buildFullChannelListV1(name, maxChannels, maxVideos, maxComments);
@@ -155,7 +155,7 @@ public class ChannelController {
     public Channel PostChannelVideoV2(@PathVariable("id") String id,
                                       @RequestParam(name = "maxVideos", defaultValue = "10") Integer maxVideos,
                                       @RequestParam(name = "maxComments", defaultValue = "10") Integer maxComments,
-                                      @RequestHeader(name = "Authorization", required = false) String token)
+                                      @RequestHeader(name = "Authorization", required = true) String token)
             throws ChannelNotFoundException, ForbiddenException, CaptionNotFoundException, CommentNotFoundException, UploadsNotFoundException, VideoNotFoundException {
         try {
             Channel channel = channelAssemblerService.buildFullChannelV2(id, maxVideos, maxComments);
@@ -210,7 +210,7 @@ public class ChannelController {
                                                  @RequestParam(name = "maxChannels", defaultValue = "3") Integer maxChannels,
                                                  @RequestParam(name = "maxVideos", defaultValue = "10") Integer maxVideos,
                                                  @RequestParam(name = "maxComments", defaultValue = "10") Integer maxComments,
-                                                 @RequestHeader(name = "Authorization", required = false) String token)
+                                                 @RequestHeader(name = "Authorization", required = true) String token)
             throws ForbiddenException, CaptionNotFoundException, ListChannelsNotFoundException, CommentNotFoundException, ChannelNotFoundException, VideoNotFoundException, UploadsNotFoundException {
         try {
             List<Channel> channelList = channelAssemblerService.buildFullChannelListV2(name, maxChannels, maxVideos, maxComments);
