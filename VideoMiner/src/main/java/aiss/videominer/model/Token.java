@@ -29,15 +29,15 @@ public class Token {
 
     @NotBlank
     @Size(min = 64, max = 64)
-    @Column(name = "token_hash", unique = true, length = 64)
+    @Column(name = "token_hash", nullable = false, unique = true, length = 64)
     private String tokenHash;
 
     @NotNull
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     @NotNull
-    @Column(name = "expires_at")
+    @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
     @Column(name = "revoked", nullable = false, columnDefinition = "boolean default false")
