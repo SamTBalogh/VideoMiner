@@ -16,6 +16,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 
 import java.time.Instant;
@@ -26,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -142,7 +144,7 @@ class TokenServiceTest {
             Token token = invocation.getArgument(0);
             token.setId("generated-id");
             return token;
-        }).when(tokenRepository).save(any(Token.class));
+        }).when(tokenRepository).saveAndFlush(any(Token.class));
 
         TokenIssueResponse response = tokenService.issueToken("test-management-key", request);
 
@@ -152,12 +154,34 @@ class TokenServiceTest {
         assertThat(response.getExpiresAt()).isAfter(response.getCreatedAt());
 
         ArgumentCaptor<Token> captor = ArgumentCaptor.forClass(Token.class);
-        verify(tokenRepository).save(captor.capture());
+        verify(tokenRepository).saveAndFlush(captor.capture());
         Token persisted = captor.getValue();
 
         assertThat(persisted.getTokenHash()).isNotBlank();
         assertThat(persisted.getTokenHash()).hasSize(64);
         assertThat(persisted.getTokenHash()).isNotEqualTo(response.getAccessToken());
+    }
+
+    @Test
+    void issueToken_collisionOnFlush_retriesAndSucceeds() throws Exception {
+        stubManagementKey();
+        stubIssueTokenConfiguration();
+
+        TokenIssueRequest request = new TokenIssueRequest();
+        request.setTtlHours(24L);
+
+        when(tokenRepository.saveAndFlush(any(Token.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate key"))
+                .thenAnswer(invocation -> {
+                    Token token = invocation.getArgument(0);
+                    token.setId("generated-id-after-retry");
+                    return token;
+                });
+
+        TokenIssueResponse response = tokenService.issueToken("test-management-key", request);
+
+        assertThat(response.getTokenId()).isEqualTo("generated-id-after-retry");
+        verify(tokenRepository, times(2)).saveAndFlush(any(Token.class));
     }
 
     @Test

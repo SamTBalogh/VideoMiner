@@ -98,7 +98,8 @@ public class TokenService {
             token.setRevokedAt(null);
 
             try {
-                Token saved = tokenRepository.save(token);
+                // Flush inside the retry loop so unique-constraint collisions are caught here.
+                Token saved = tokenRepository.saveAndFlush(token);
                 return new TokenIssueResponse(
                         saved.getId(),
                         plainToken,
