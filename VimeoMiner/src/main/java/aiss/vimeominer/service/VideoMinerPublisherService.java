@@ -9,10 +9,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 @Service
 public class VideoMinerPublisherService {
 
     private static final String MISSING_TOKEN_MESSAGE = "Authorization header with a valid Bearer token is required to publish to VideoMiner";
+    private static final Pattern BEARER_PATTERN = Pattern.compile("^bearer\\s+(.+)$", Pattern.CASE_INSENSITIVE);
 
     @Value("${videoMiner.url}")
     private String videoMinerUrl;
@@ -45,8 +49,9 @@ public class VideoMinerPublisherService {
         if (trimmed.equalsIgnoreCase("Bearer")) {
             return "";
         }
-        if (trimmed.regionMatches(true, 0, "Bearer ", 0, "Bearer ".length())) {
-            String value = trimmed.substring("Bearer ".length()).trim();
+        Matcher bearerMatcher = BEARER_PATTERN.matcher(trimmed);
+        if (bearerMatcher.matches()) {
+            String value = bearerMatcher.group(1).trim();
             return value.isEmpty() ? "" : "Bearer " + value;
         }
         return "Bearer " + trimmed;

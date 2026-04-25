@@ -13,6 +13,9 @@ interface EntityConfig {
   columns: string[];
 }
 
+const DEFAULT_PAGE = "0";
+const DEFAULT_SIZE = "10";
+
 const entities: Record<EntityKey, EntityConfig> = {
   channels: {
     endpointId: "vm-list-channels",
@@ -79,11 +82,17 @@ function buildRowKey(row: unknown, entityKey: EntityKey, columns: string[]) {
   return `${entityKey}:${fingerprint || JSON.stringify(row)}`;
 }
 
+function normalizeIntegerInput(value: string, minimum: number, fallback: number) {
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed)) return String(fallback);
+  return String(Math.max(minimum, parsed));
+}
+
 export function DataExplorerPage() {
   const { settings } = useApiSettings();
   const [entityKey, setEntityKey] = useState<EntityKey>("channels");
-  const [page, setPage] = useState("0");
-  const [size, setSize] = useState("10");
+  const [page, setPage] = useState(DEFAULT_PAGE);
+  const [size, setSize] = useState(DEFAULT_SIZE);
   const [order, setOrder] = useState("");
   const [filterField, setFilterField] = useState<string>(firstFilter("channels"));
   const [filterValue, setFilterValue] = useState("");
@@ -92,6 +101,8 @@ export function DataExplorerPage() {
   const entity = entities[entityKey];
   const endpoint = getEndpoint(entity.endpointId);
   const endpointBaseUrl = settings.baseUrls[endpoint.service];
+  const normalizedPage = useMemo(() => normalizeIntegerInput(page, 0, 0), [page]);
+  const normalizedSize = useMemo(() => normalizeIntegerInput(size, 1, 10), [size]);
 
   const query = useQuery({
     queryKey: [
@@ -99,15 +110,18 @@ export function DataExplorerPage() {
       entityKey,
       endpoint.service,
       endpointBaseUrl,
-      page,
-      size,
+      normalizedPage,
+      normalizedSize,
       order,
       filterField,
       filterValue,
       settings.token,
     ],
     queryFn: async () => {
-      const queryValues: Record<string, string> = { page, size };
+      const queryValues: Record<string, string> = {
+        page: normalizedPage,
+        size: normalizedSize,
+      };
       if (order.trim()) queryValues.order = order.trim();
       if (filterValue.trim()) queryValues[filterField] = filterValue.trim();
 
@@ -168,11 +182,27 @@ export function DataExplorerPage() {
           </label>
           <label>
             <span>Page</span>
-            <input value={page} onChange={(event) => setPage(event.target.value)} />
+            <input
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              value={page}
+              onChange={(event) => setPage(event.target.value)}
+              onBlur={() => setPage(normalizedPage)}
+            />
           </label>
           <label>
             <span>Size</span>
-            <input value={size} onChange={(event) => setSize(event.target.value)} />
+            <input
+              type="number"
+              min={1}
+              step={1}
+              inputMode="numeric"
+              value={size}
+              onChange={(event) => setSize(event.target.value)}
+              onBlur={() => setSize(normalizedSize)}
+            />
           </label>
           <label>
             <span>Order</span>

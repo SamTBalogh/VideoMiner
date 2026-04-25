@@ -6,9 +6,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -90,5 +93,26 @@ class VideoMinerPublisherServiceTest {
                 .thenThrow(forbidden);
 
         assertThrows(ForbiddenException.class, () -> videoMinerPublisherService.publish(channel, "bad-token"));
+    }
+
+    @Test
+    @DisplayName("publish normalizes bearer token with tab separator")
+    @SuppressWarnings("unchecked")
+    void publish_withBearerTab_normalizesHeader() throws ForbiddenException {
+        Channel channel = new Channel("28359", "Tech Channel", "Tech content", "2024-01-01");
+
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(), eq(Void.class)))
+                .thenReturn(ResponseEntity.ok(null));
+
+        videoMinerPublisherService.publish(channel, "Bearer\tmy-token");
+
+        ArgumentCaptor<HttpEntity<Channel>> requestCaptor = ArgumentCaptor.forClass((Class) HttpEntity.class);
+        verify(restTemplate).exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                requestCaptor.capture(),
+                eq(Void.class)
+        );
+        assertEquals("Bearer my-token", requestCaptor.getValue().getHeaders().getFirst(HttpHeaders.AUTHORIZATION));
     }
 }
