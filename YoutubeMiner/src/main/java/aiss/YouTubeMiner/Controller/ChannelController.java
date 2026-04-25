@@ -33,7 +33,7 @@ public class ChannelController {
             description = "Post a Channel object to VideoMiner from the YouTube's API by specifying the channel Id, the Channel data is sent in the body of the request in JSON format.<br /><br />" +
                     "The maximum number of videos and comments to retrieve from the channel can be specified with the parameters `maxVideos` and `maxComments` respectively.<br />" +
                     "If no values are provided, defaults of 10 videos and 10 comments will be retrieved from each channel.<br /><br />" +
-                    "Optionally, include an Authorization header with your token for authorization, taking in account that is required for VideoMiner to authorize the request.",
+                    "Include an Authorization header with your token for authorization, taking in account that it is required for VideoMiner to authorize the request.",
             tags = {"channels", "post"})
     @ApiResponses({
             @ApiResponse(responseCode = "201", content = {@Content(schema = @Schema(implementation = Channel.class), mediaType = "application/json")}),
@@ -86,7 +86,7 @@ public class ChannelController {
                     "The maximum number of channels to be retrieved can be specified with `maxChannels`.<br />If no values are provided, the number of channels will be 3.<br /><br />" +
                     "The maximum number of videos and comments to retrieve from each channel can be specified with the parameters `maxVideos` and `maxComments` respectively.<br />" +
                     "If no values are provided, defaults of 10 videos and 10 comments will be retrieved for each channel.<br /><br />" +
-                    "Optionally, include an Authorization header with your token for authorization, taking in account that is required for VideoMiner to authorize the request.",
+                    "Include an Authorization header with your token for authorization, taking in account that it is required for VideoMiner to authorize the request.",
             tags = {"channels", "post"})
     @ApiResponses({
             @ApiResponse(responseCode = "201", content = {@Content(schema = @Schema(implementation = Channel.class), mediaType = "application/json")}),
@@ -143,7 +143,7 @@ public class ChannelController {
             description = "This version is using the new models implemented.<br /><br />Post a Channel object to VideoMiner from the YouTube's API by specifying the channel Id, the Channel data is sent in the body of the request in JSON format.<br /><br />" +
                     "The maximum number of videos and comments to retrieve from the channel can be specified with the parameters `maxVideos` and `maxComments` respectively.<br />" +
                     "If no values are provided, defaults of 10 videos and 10 comments will be retrieved.<br /><br />" +
-                    "Optionally, include an Authorization header with your token for authorization, taking in account that is required for VideoMiner to authorize the request.",
+                    "Include an Authorization header with your token for authorization, taking in account that it is required for VideoMiner to authorize the request.",
             tags = {"channels", "post"})
     @ApiResponses({
             @ApiResponse(responseCode = "201", content = {@Content(schema = @Schema(implementation = Channel.class), mediaType = "application/json")}),
@@ -196,7 +196,7 @@ public class ChannelController {
                     "The maximum number of channels to be retrieved can be specified with `maxChannels`.<br />If no values are provided, the number of channels will be 3.<br /><br />" +
                     "The maximum number of videos and comments to retrieve from each channel can be specified with the parameters `maxVideos` and `maxComments` respectively.<br />" +
                     "If no values are provided, defaults of 10 videos and 10 comments will be retrieved for each channel.<br /><br />" +
-                    "Optionally, include an Authorization header with your token for authorization, taking in account that is required for VideoMiner to authorize the request.",
+                    "Include an Authorization header with your token for authorization, taking in account that it is required for VideoMiner to authorize the request.",
             tags = {"channels", "post"})
     @ApiResponses({
             @ApiResponse(responseCode = "201", content = {@Content(schema = @Schema(implementation = Channel.class), mediaType = "application/json")}),

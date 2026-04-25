@@ -86,13 +86,13 @@ export const ENDPOINTS: EndpointDefinition[] = [
     label: "Vimeo: fetch and publish channel",
     pathTemplate: "/vimeoMiner/v1/{id}",
     description:
-      "Builds channel data from Vimeo and posts it to VideoMiner storage.",
+      "Builds channel data from Vimeo and posts it to VideoMiner storage. Requires Authorization token in Connection Settings.",
     pathParams: ["id"],
     queryParams: [
       { name: "maxVideos", defaultValue: "10" },
       { name: "maxComments", defaultValue: "10" },
     ],
-    authMode: "optional",
+    authMode: "required",
   },
   {
     id: "youtube-v1-get-channel",
@@ -118,13 +118,13 @@ export const ENDPOINTS: EndpointDefinition[] = [
     label: "YouTube v1: fetch and publish channel",
     pathTemplate: "/youTubeMiner/v1/{id}",
     description:
-      "Builds channel data using search strategy and stores it in VideoMiner.",
+      "Builds channel data using search strategy and stores it in VideoMiner. Requires Authorization token in Connection Settings.",
     pathParams: ["id"],
     queryParams: [
       { name: "maxVideos", defaultValue: "10" },
       { name: "maxComments", defaultValue: "10" },
     ],
-    authMode: "optional",
+    authMode: "required",
   },
   {
     id: "youtube-v1-get-channels",
@@ -149,14 +149,15 @@ export const ENDPOINTS: EndpointDefinition[] = [
     method: "POST",
     label: "YouTube v1: search and publish channels",
     pathTemplate: "/youTubeMiner/v1/channels",
-    description: "Searches channels by name and stores the result in VideoMiner.",
+    description:
+      "Searches channels by name and stores the result in VideoMiner. Requires Authorization token in Connection Settings.",
     queryParams: [
       { name: "name", placeholder: "music" },
       { name: "maxChannels", defaultValue: "3" },
       { name: "maxVideos", defaultValue: "10" },
       { name: "maxComments", defaultValue: "10" },
     ],
-    authMode: "optional",
+    authMode: "required",
   },
   {
     id: "youtube-v2-get-channel",
@@ -182,13 +183,13 @@ export const ENDPOINTS: EndpointDefinition[] = [
     label: "YouTube v2: fetch and publish channel",
     pathTemplate: "/youTubeMiner/v2/{id}",
     description:
-      "Builds channel data using uploads playlist strategy and stores it.",
+      "Builds channel data using uploads playlist strategy and stores it. Requires Authorization token in Connection Settings.",
     pathParams: ["id"],
     queryParams: [
       { name: "maxVideos", defaultValue: "10" },
       { name: "maxComments", defaultValue: "10" },
     ],
-    authMode: "optional",
+    authMode: "required",
   },
   {
     id: "youtube-v2-get-channels",
@@ -213,14 +214,15 @@ export const ENDPOINTS: EndpointDefinition[] = [
     method: "POST",
     label: "YouTube v2: search and publish channels",
     pathTemplate: "/youTubeMiner/v2/channels",
-    description: "Searches channels (v2) by name and stores them in VideoMiner.",
+    description:
+      "Searches channels (v2) by name and stores them in VideoMiner. Requires Authorization token in Connection Settings.",
     queryParams: [
       { name: "name", placeholder: "music" },
       { name: "maxChannels", defaultValue: "3" },
       { name: "maxVideos", defaultValue: "10" },
       { name: "maxComments", defaultValue: "10" },
     ],
-    authMode: "optional",
+    authMode: "required",
   },
   {
     id: "vm-create-token",

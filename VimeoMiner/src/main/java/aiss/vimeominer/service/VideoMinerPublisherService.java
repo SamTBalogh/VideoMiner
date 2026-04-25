@@ -12,6 +12,8 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class VideoMinerPublisherService {
 
+    private static final String MISSING_TOKEN_MESSAGE = "Authorization header with a valid Bearer token is required to publish to VideoMiner";
+
     @Value("${videoMiner.url}")
     private String videoMinerUrl;
 
@@ -19,14 +21,14 @@ public class VideoMinerPublisherService {
     private RestTemplate restTemplate;
 
     public void publish(Channel channel, String token) throws ForbiddenException {
+        String normalizedToken = normalizeBearerToken(token == null ? "" : token);
+        if (normalizedToken.isBlank()) {
+            throw new ForbiddenException(MISSING_TOKEN_MESSAGE);
+        }
+
         try {
             HttpHeaders headers = new HttpHeaders();
-            if (token != null) {
-                String normalizedToken = normalizeBearerToken(token);
-                if (!normalizedToken.isBlank()) {
-                    headers.add("Authorization", normalizedToken);
-                }
-            }
+            headers.add("Authorization", normalizedToken);
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<Channel> requestEntity = new HttpEntity<>(channel, headers);
             restTemplate.exchange(videoMinerUrl + "/channels", HttpMethod.POST, requestEntity, Void.class);

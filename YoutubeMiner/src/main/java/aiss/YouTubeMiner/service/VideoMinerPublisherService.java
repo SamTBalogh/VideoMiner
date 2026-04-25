@@ -14,6 +14,8 @@ import java.util.List;
 @Service
 public class VideoMinerPublisherService {
 
+    private static final String MISSING_TOKEN_MESSAGE = "Authorization header with a valid Bearer token is required to publish to VideoMiner";
+
     @Autowired
     RestTemplate restTemplate;
 
@@ -21,13 +23,13 @@ public class VideoMinerPublisherService {
     private String videoMinerUrl;
 
     public void publish(Channel channel, String token) throws ForbiddenException {
-        HttpHeaders headers = new HttpHeaders();
-        if (token != null) {
-            String normalizedToken = normalizeBearerToken(token);
-            if (!normalizedToken.isBlank()) {
-                headers.add("Authorization", normalizedToken);
-            }
+        String normalizedToken = normalizeBearerToken(token == null ? "" : token);
+        if (normalizedToken.isBlank()) {
+            throw new ForbiddenException(MISSING_TOKEN_MESSAGE);
         }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", normalizedToken);
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Channel> requestEntity = new HttpEntity<>(channel, headers);
         try {
