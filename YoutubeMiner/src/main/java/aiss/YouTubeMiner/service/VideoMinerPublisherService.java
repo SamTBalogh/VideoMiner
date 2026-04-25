@@ -10,9 +10,14 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class VideoMinerPublisherService {
+
+    private static final String MISSING_TOKEN_MESSAGE = "Authorization header with a valid Bearer token is required to publish to VideoMiner";
+    private static final Pattern BEARER_PATTERN = Pattern.compile("^bearer\\s+(.+)$", Pattern.CASE_INSENSITIVE);
 
     @Autowired
     RestTemplate restTemplate;
@@ -21,10 +26,13 @@ public class VideoMinerPublisherService {
     private String videoMinerUrl;
 
     public void publish(Channel channel, String token) throws ForbiddenException {
-        HttpHeaders headers = new HttpHeaders();
-        if (token != null) {
-            headers.add("Authorization", token);
+        String normalizedToken = normalizeBearerToken(token == null ? "" : token);
+        if (normalizedToken.isBlank()) {
+            throw new ForbiddenException(MISSING_TOKEN_MESSAGE);
         }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", normalizedToken);
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Channel> requestEntity = new HttpEntity<>(channel, headers);
         try {
@@ -38,5 +46,21 @@ public class VideoMinerPublisherService {
         for (Channel channel : channels) {
             publish(channel, token);
         }
+    }
+
+    private String normalizeBearerToken(String token) {
+        String trimmed = token.trim();
+        if (trimmed.isEmpty()) {
+            return "";
+        }
+        if (trimmed.equalsIgnoreCase("Bearer")) {
+            return "";
+        }
+        Matcher bearerMatcher = BEARER_PATTERN.matcher(trimmed);
+        if (bearerMatcher.matches()) {
+            String value = bearerMatcher.group(1).trim();
+            return value.isEmpty() ? "" : "Bearer " + value;
+        }
+        return "Bearer " + trimmed;
     }
 }

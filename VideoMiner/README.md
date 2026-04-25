@@ -38,7 +38,7 @@ Channel
 | `Comment` | `String id`  | `text`, `createdOn`, `author` (User, NOT NULL)         |
 | `Caption` | `String id`  | `name`, `language`                                     |
 | `User`    | `Long id`    | `name`, `userLink`, `pictureLink` — auto-generated ID  |
-| `Token`   | `String id`  | Primary key only; no additional fields                 |
+| `Token`   | `String id`  | `tokenHash`, `createdAt`, `expiresAt`, `revoked`, `revokedAt` |
 
 > `*` required field (`@NotEmpty`)
 
@@ -48,31 +48,48 @@ Cascade (`ALL`) relationships mean that deleting a `Channel` deletes its `Video`
 
 ## Authentication
 
-All endpoints **except** `POST /videoMiner/v1/token` require the following header:
+All endpoints **except** token-management endpoints require the following header:
 
 ```
-Authorization: <token>
+Authorization: Bearer <token>
 ```
 
 **Flow:**
 
-1. Register a token (no authentication required):
+1. Issue a token (requires management key):
    ```http
    POST /videoMiner/v1/token
+   X-Token-Management-Key: <management-key>
    Content-Type: application/json
 
-   { "id": "my-secret-token" }
+   { "ttlHours": 24 }
+   ```
+   Example response:
+   ```json
+   {
+     "tokenId": "fd4c1b2c-6bca-4a39-9b95-c1f87d2e71ac",
+     "accessToken": "w7Fx...opaque_token...",
+     "tokenType": "Bearer",
+     "createdAt": "2026-04-24T10:00:00Z",
+     "expiresAt": "2026-04-25T10:00:00Z"
+   }
    ```
 2. Include that token in all subsequent requests:
    ```http
    GET /videoMiner/v1/channels
-   Authorization: my-secret-token
+   Authorization: Bearer w7Fx...opaque_token...
+   ```
+3. Revoke a token if needed:
+   ```http
+   DELETE /videoMiner/v1/token/{tokenId}
+   X-Token-Management-Key: <management-key>
    ```
 
-| Situation                          | HTTP  | Exception                  |
-|------------------------------------|-------|----------------------------|
-| `Authorization` header missing     | 403   | `TokenRequiredException`   |
-| Token not registered in the DB     | 403   | `TokenNotValidException`   |
+| Situation                                              | HTTP  | Exception                           |
+|--------------------------------------------------------|-------|-------------------------------------|
+| `Authorization` header missing                         | 403   | `TokenRequiredException`            |
+| Token invalid / expired / revoked / non-Bearer format | 403   | `TokenNotValidException`            |
+| Token management key missing or invalid                | 403   | `TokenManagementForbiddenException` |
 
 ---
 
@@ -82,9 +99,10 @@ Base path: `/videoMiner/v1`
 
 ### Token
 
-| Method | Path     | Body              | Response | Status |
-|--------|----------|-------------------|----------|--------|
-| POST   | `/token` | `{ "id": "..." }` | `Token`  | 201    |
+| Method | Path          | Headers                            | Body                 | Response             | Status |
+|--------|---------------|------------------------------------|----------------------|----------------------|--------|
+| POST   | `/token`      | `X-Token-Management-Key`           | `{ "ttlHours": 24 }` | `TokenIssueResponse` | 201    |
+| DELETE | `/token/{id}` | `X-Token-Management-Key`           | —                    | —                    | 204    |
 
 ### Channels
 
@@ -155,18 +173,21 @@ Base path: `/videoMiner/v1`
 
 ## Error Reference
 
-| Exception                   | HTTP | Cause                                                        |
-|-----------------------------|------|--------------------------------------------------------------|
-| `VideoNotFoundException`    | 404  | No video found with the given ID                             |
-| `ChannelNotFoundException`  | 404  | No channel found with the given ID                           |
-| `CommentNotFoundException`  | 404  | No comment found with the given ID                           |
-| `UserNotFoundException`     | 404  | No user found with the given ID                              |
-| `CaptionNotFoundException`  | 404  | No caption found with the given ID                           |
-| `TokenRequiredException`    | 403  | `Authorization` header is missing                            |
-| `TokenNotValidException`    | 403  | The provided token is not registered                         |
-| `IdCannotBeNull`            | 400  | The `id` field in the request body is required for POST      |
-| `BadRequestParameterField`  | 400  | More than one filter parameter was provided at the same time |
-| `BadRequestIdParameter`     | 400  | The `id` filter for users must be a valid number             |
+| Exception                          | HTTP | Cause                                                         |
+|------------------------------------|------|---------------------------------------------------------------|
+| `VideoNotFoundException`           | 404  | No video found with the given ID                              |
+| `ChannelNotFoundException`         | 404  | No channel found with the given ID                            |
+| `CommentNotFoundException`         | 404  | No comment found with the given ID                            |
+| `UserNotFoundException`            | 404  | No user found with the given ID                               |
+| `CaptionNotFoundException`         | 404  | No caption found with the given ID                            |
+| `TokenNotFoundException`           | 404  | No token found with the given ID                              |
+| `TokenRequiredException`           | 403  | `Authorization` header is missing                             |
+| `TokenNotValidException`           | 403  | Token is invalid, expired, revoked or not sent as `Bearer`    |
+| `TokenManagementForbiddenException`| 403  | Missing or invalid `X-Token-Management-Key`                   |
+| `TokenTtlOutOfRangeException`      | 400  | `ttlHours` out of configured min/max range                    |
+| `IdCannotBeNull`                   | 400  | The `id` field in the request body is required for POST       |
+| `BadRequestParameterField`         | 400  | More than one filter parameter was provided at the same time  |
+| `BadRequestIdParameter`            | 400  | The `id` filter for users must be a valid number              |
 
 ---
 
@@ -199,6 +220,14 @@ GET /videoMiner/v1/comments?page=0&size=20&order=createdOn
 | H2 console path        | `/h2-ui`                     |
 | DDL auto               | `update`                     |
 | SQL logging            | enabled                      |
+
+Token auth settings are provided by environment variables:
+
+- `VIDEOMINER_TOKEN_PEPPER` (required)
+- `VIDEOMINER_TOKEN_MANAGEMENT_KEY` (required)
+- `VIDEOMINER_TOKEN_DEFAULT_TTL_HOURS` (default `24`)
+- `VIDEOMINER_TOKEN_MIN_TTL_HOURS` (default `1`)
+- `VIDEOMINER_TOKEN_MAX_TTL_HOURS` (default `720`)
 
 The database is **in-memory**: data does not persist across restarts. To persist data, replace the datasource URL in `application.properties` with an external database (PostgreSQL, MySQL, etc.).
 

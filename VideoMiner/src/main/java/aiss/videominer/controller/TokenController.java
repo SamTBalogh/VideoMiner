@@ -1,9 +1,11 @@
 package aiss.videominer.controller;
 
-import aiss.videominer.exception.IdCannotBeNull;
-import aiss.videominer.model.Channel;
-import aiss.videominer.model.Token;
-import aiss.videominer.repository.TokenRepository;
+import aiss.videominer.exception.TokenManagementForbiddenException;
+import aiss.videominer.exception.TokenNotFoundException;
+import aiss.videominer.exception.TokenTtlOutOfRangeException;
+import aiss.videominer.model.auth.TokenIssueRequest;
+import aiss.videominer.model.auth.TokenIssueResponse;
+import aiss.videominer.service.TokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -21,24 +23,42 @@ import org.springframework.web.bind.annotation.*;
 public class TokenController {
 
     @Autowired
-    TokenRepository repository;
+    TokenService tokenService;
 
-    // POST http://localhost:8080/videoMiner/api/v1/tokens
-    @Operation( summary = "Insert a Token",
-            description = "Add a Token object, the Token data is passed in the body of the request in JSON format.",
+    // POST http://localhost:8080/videoMiner/v1/token
+    @Operation(summary = "Issue a new token",
+            description = "Creates a new opaque token. Requires header X-Token-Management-Key. " +
+                    "Returns the plain access token only once; VideoMiner stores only its hash.",
             tags = {"tokens", "post"})
     @ApiResponses({
-            @ApiResponse(responseCode = "201", content = {@Content(schema=@Schema(implementation = Channel.class), mediaType = "application/json")}),
-            @ApiResponse(responseCode = "400", content = {@Content(schema=@Schema())})
+            @ApiResponse(responseCode = "201", content = {@Content(schema = @Schema(implementation = TokenIssueResponse.class), mediaType = "application/json")}),
+            @ApiResponse(responseCode = "400", content = {@Content(schema = @Schema())}),
+            @ApiResponse(responseCode = "403", content = {@Content(schema = @Schema())})
     })
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/token")
-    public Token addToken(@Valid @RequestBody Token token) throws IdCannotBeNull {
-        if(token.getId() == null){
-            throw new IdCannotBeNull();
-        }
-        repository.save(token);
+    public TokenIssueResponse issueToken(
+            @RequestHeader(name = TokenService.MANAGEMENT_HEADER, required = true) String managementKey,
+            @Valid @RequestBody(required = false) TokenIssueRequest request
+    ) throws TokenManagementForbiddenException, TokenTtlOutOfRangeException {
+        return tokenService.issueToken(managementKey, request);
+    }
 
-        return token;
+    // DELETE http://localhost:8080/videoMiner/v1/token/{id}
+    @Operation(summary = "Revoke an existing token",
+            description = "Revokes a token by its tokenId. Requires header X-Token-Management-Key.",
+            tags = {"tokens", "delete"})
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", content = {@Content(schema = @Schema())}),
+            @ApiResponse(responseCode = "403", content = {@Content(schema = @Schema())}),
+            @ApiResponse(responseCode = "404", content = {@Content(schema = @Schema())})
+    })
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @DeleteMapping("/token/{id}")
+    public void revokeToken(
+            @PathVariable("id") String tokenId,
+            @RequestHeader(name = TokenService.MANAGEMENT_HEADER, required = true) String managementKey
+    ) throws TokenManagementForbiddenException, TokenNotFoundException {
+        tokenService.revokeToken(tokenId, managementKey);
     }
 }

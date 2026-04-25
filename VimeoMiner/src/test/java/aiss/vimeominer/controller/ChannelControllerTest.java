@@ -116,7 +116,8 @@ class ChannelControllerTest {
         when(channelAssemblerService.buildFullChannel(eq("bad-id"), anyInt(), anyInt()))
                 .thenThrow(new ChannelNotFoundException());
 
-        mockMvc.perform(post("/vimeoMiner/v1/bad-id"))
+        mockMvc.perform(post("/vimeoMiner/v1/bad-id")
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isNotFound());
     }
 
@@ -128,7 +129,8 @@ class ChannelControllerTest {
         doThrow(new ForbiddenException("Unauthorized"))
                 .when(videoMinerPublisherService).publish(any(), any());
 
-        mockMvc.perform(post("/vimeoMiner/v1/28359"))
+        mockMvc.perform(post("/vimeoMiner/v1/28359")
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isForbidden());
     }
 }
