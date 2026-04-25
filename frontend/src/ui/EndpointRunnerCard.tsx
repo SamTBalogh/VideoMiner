@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { executeEndpoint } from "../lib/http";
+import { executeEndpoint, normalizeBearerToken } from "../lib/http";
 import { useApiSettings } from "../context/ApiSettingsContext";
 import type { ApiExecutionResult, EndpointDefinition } from "../types";
 
@@ -50,6 +50,11 @@ export function EndpointRunnerCard({
     setSendOptionalAuth(true);
   }, [endpoint]);
 
+  const normalizedToken = useMemo(
+    () => normalizeBearerToken(settings.token),
+    [settings.token],
+  );
+
   const mutation = useMutation({
     mutationFn: async () => {
       const result = await executeEndpoint({
@@ -67,7 +72,7 @@ export function EndpointRunnerCard({
 
   const canSubmit = useMemo(() => {
     if (mutation.isPending) return false;
-    if (endpoint.authMode === "required" && !settings.token.trim()) return false;
+    if (endpoint.authMode === "required" && !normalizedToken) return false;
     if (endpoint.requiresManagementKey && !settings.managementKey.trim()) return false;
     return true;
   }, [
@@ -75,7 +80,7 @@ export function EndpointRunnerCard({
     endpoint.requiresManagementKey,
     mutation.isPending,
     settings.managementKey,
-    settings.token,
+    normalizedToken,
   ]);
 
   const response = mutation.data;
@@ -154,7 +159,7 @@ export function EndpointRunnerCard({
         </label>
       )}
 
-      {endpoint.authMode === "required" && !settings.token.trim() && (
+      {endpoint.authMode === "required" && !normalizedToken && (
         <div className="warning">
           This endpoint requires a token. Set it in Connection Settings.
         </div>

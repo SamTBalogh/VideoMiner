@@ -46,7 +46,7 @@ function buildQueryString(queryValues: Record<string, string>) {
   return value ? `?${value}` : "";
 }
 
-function normalizeBearerToken(token: string) {
+export function normalizeBearerToken(token: string) {
   const trimmed = token.trim();
   if (!trimmed) return "";
   if (trimmed.toLowerCase() === "bearer") return "";
@@ -130,11 +130,8 @@ export async function executeEndpoint(
 
   let body: unknown = null;
   if (rawBody) {
-    try {
-      body = safeJsonParse(rawBody);
-    } catch {
-      body = rawBody;
-    }
+    const parsedBody = safeJsonParse(rawBody);
+    body = parsedBody === undefined ? rawBody : parsedBody;
   }
 
   return {

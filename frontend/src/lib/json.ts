@@ -1,6 +1,10 @@
-export function safeJsonParse(value: string): unknown {
+export function safeJsonParse(value: string): unknown | undefined {
   if (!value.trim()) return null;
-  return JSON.parse(value);
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
 }
 
 export function prettyJson(value: unknown): string {
