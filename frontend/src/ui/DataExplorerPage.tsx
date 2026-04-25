@@ -90,16 +90,29 @@ export function DataExplorerPage() {
   const [selectedRow, setSelectedRow] = useState<unknown>(null);
 
   const entity = entities[entityKey];
+  const endpoint = getEndpoint(entity.endpointId);
+  const endpointBaseUrl = settings.baseUrls[endpoint.service];
 
   const query = useQuery({
-    queryKey: ["explorer", entityKey, page, size, order, filterField, filterValue, settings.token],
+    queryKey: [
+      "explorer",
+      entityKey,
+      endpoint.service,
+      endpointBaseUrl,
+      page,
+      size,
+      order,
+      filterField,
+      filterValue,
+      settings.token,
+    ],
     queryFn: async () => {
       const queryValues: Record<string, string> = { page, size };
       if (order.trim()) queryValues.order = order.trim();
       if (filterValue.trim()) queryValues[filterField] = filterValue.trim();
 
       const result = await executeEndpoint({
-        endpoint: getEndpoint(entity.endpointId),
+        endpoint,
         settings,
         queryValues,
       });

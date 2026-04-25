@@ -49,6 +49,7 @@ function buildQueryString(queryValues: Record<string, string>) {
 function normalizeBearerToken(token: string) {
   const trimmed = token.trim();
   if (!trimmed) return "";
+  if (trimmed.toLowerCase() === "bearer") return "";
 
   const bearerMatch = /^bearer\s+(.+)$/i.exec(trimmed);
   if (!bearerMatch) return `Bearer ${trimmed}`;
