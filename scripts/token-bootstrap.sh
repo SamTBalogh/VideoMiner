@@ -10,6 +10,17 @@ MANAGEMENT_KEY="${VIDEOMINER_TOKEN_MANAGEMENT_KEY:-${VIDEOMINER_MANAGEMENT_KEY:-
 TOKEN_TTL_HOURS="${TOKEN_TTL_HOURS:-24}"
 PROTECTED_PATH="${PROTECTED_PATH:-/channels}"
 
+require_command() {
+  local command_name="$1"
+  if ! command -v "${command_name}" >/dev/null 2>&1; then
+    echo "ERROR: Required command '${command_name}' is not available in PATH." >&2
+    exit 1
+  fi
+}
+
+require_command "curl"
+require_command "python3"
+
 if [[ -z "${MANAGEMENT_KEY}" && -f "${ENV_FILE}" ]]; then
   set -a
   # shellcheck disable=SC1091

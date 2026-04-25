@@ -71,6 +71,14 @@ function pickValue(record: unknown, path: string): string {
   return JSON.stringify(current);
 }
 
+function buildRowKey(row: unknown, entityKey: EntityKey, columns: string[]) {
+  const id = pickValue(row, "id");
+  if (id) return `${entityKey}:${id}`;
+
+  const fingerprint = columns.map((column) => pickValue(row, column)).join("|");
+  return `${entityKey}:${fingerprint || JSON.stringify(row)}`;
+}
+
 export function DataExplorerPage() {
   const { settings } = useApiSettings();
   const [entityKey, setEntityKey] = useState<EntityKey>("channels");
@@ -206,9 +214,9 @@ export function DataExplorerPage() {
                       <td colSpan={columnHeaders.length}>No rows found.</td>
                     </tr>
                   )}
-                  {rows.map((row, index) => (
+                  {rows.map((row) => (
                     <tr
-                      key={index}
+                      key={buildRowKey(row, entityKey, entity.columns)}
                       onClick={() => setSelectedRow(row)}
                       className={selectedRow === row ? "table-row--active" : ""}
                     >

@@ -1,4 +1,4 @@
-# Guia de Autenticacion por Tokens (VideoMiner)
+# Guía de Autenticación por Tokens (VideoMiner)
 
 ## 1. Objetivo
 Este documento explica el sistema de autenticacion interna por tokens en VideoMiner:
