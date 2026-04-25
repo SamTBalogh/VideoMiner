@@ -157,7 +157,7 @@ You have two options:
 1. **All Docker (recommended):** use the standard development compose command above and open `http://localhost:5173`.
 2. **Local Node frontend + Docker backend:** run frontend manually as shown below.
 
-Prerequisite for option 2: Node.js 20+ and npm.
+Prerequisite for option 2: Node.js 20.19+ and npm.
 
 ```bash
 cd frontend

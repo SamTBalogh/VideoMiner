@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+ENV_FILE="${REPO_ROOT}/.env.dev"
+
 BASE_URL="${VIDEOMINER_BASE_URL:-http://localhost:8080/videoMiner/v1}"
 MANAGEMENT_KEY="${VIDEOMINER_TOKEN_MANAGEMENT_KEY:-${VIDEOMINER_MANAGEMENT_KEY:-}}"
 TOKEN_TTL_HOURS="${TOKEN_TTL_HOURS:-24}"
 PROTECTED_PATH="${PROTECTED_PATH:-/channels}"
 
-if [[ -z "${MANAGEMENT_KEY}" && -f ".env.dev" ]]; then
+if [[ -z "${MANAGEMENT_KEY}" && -f "${ENV_FILE}" ]]; then
   set -a
   # shellcheck disable=SC1091
-  source .env.dev
+  source "${ENV_FILE}"
   set +a
   MANAGEMENT_KEY="${VIDEOMINER_TOKEN_MANAGEMENT_KEY:-${VIDEOMINER_MANAGEMENT_KEY:-}}"
 fi

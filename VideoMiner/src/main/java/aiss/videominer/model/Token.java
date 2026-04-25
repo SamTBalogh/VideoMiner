@@ -14,8 +14,8 @@ import java.time.Instant;
 @Table(
         name = "Token",
         indexes = {
-                @Index(name = "idx_token_hash", columnList = "tokenHash", unique = true),
-                @Index(name = "idx_token_expires_at", columnList = "expiresAt")
+                @Index(name = "idx_token_hash", columnList = "token_hash", unique = true),
+                @Index(name = "idx_token_expires_at", columnList = "expires_at")
         }
 )
 public class Token {
@@ -24,19 +24,19 @@ public class Token {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(nullable = false, unique = true, length = 64)
+    @Column(name = "token_hash", unique = true, length = 64)
     private String tokenHash;
 
-    @Column(nullable = false)
+    @Column(name = "created_at")
     private Instant createdAt;
 
-    @Column(nullable = false)
+    @Column(name = "expires_at")
     private Instant expiresAt;
 
-    @Column(nullable = false)
-    private boolean revoked;
+    @Column(name = "revoked", nullable = false, columnDefinition = "boolean default false")
+    private boolean revoked = false;
 
-    @Column
+    @Column(name = "revoked_at")
     private Instant revokedAt;
 
     public String getId() {

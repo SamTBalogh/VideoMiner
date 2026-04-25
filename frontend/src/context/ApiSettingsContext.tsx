@@ -17,33 +17,68 @@ interface ApiSettingsContextValue {
   resetBaseUrls: () => void;
 }
 
-const STORAGE_KEY = "videominer.frontend.settings";
+const LEGACY_SETTINGS_STORAGE_KEY = "videominer.frontend.settings";
+const BASE_URLS_STORAGE_KEY = "videominer.frontend.baseUrls";
+const TOKEN_SESSION_STORAGE_KEY = "videominer.frontend.token";
+const MANAGEMENT_KEY_SESSION_STORAGE_KEY = "videominer.frontend.managementKey";
 
 const defaultSettings: ApiSettings = {
   token: "",
   managementKey: "",
-  baseUrls: DEFAULT_BASE_URLS,
+  baseUrls: { ...DEFAULT_BASE_URLS },
 };
 
 const ApiSettingsContext = createContext<ApiSettingsContextValue | null>(null);
 
-function readSettingsFromStorage(): ApiSettings {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) return defaultSettings;
+function readSessionValue(key: string) {
+  const value = sessionStorage.getItem(key);
+  return typeof value === "string" ? value : "";
+}
+
+function readBaseUrlsFromStorage() {
+  const storedBaseUrls = localStorage.getItem(BASE_URLS_STORAGE_KEY);
+  if (storedBaseUrls) {
+    try {
+      const parsed = JSON.parse(storedBaseUrls) as Partial<Record<ServiceId, string>>;
+      return {
+        ...DEFAULT_BASE_URLS,
+        ...parsed,
+      };
+    } catch {
+      return { ...DEFAULT_BASE_URLS };
+    }
+  }
+
+  const legacyStored = localStorage.getItem(LEGACY_SETTINGS_STORAGE_KEY);
+  if (!legacyStored) {
+    return { ...DEFAULT_BASE_URLS };
+  }
 
   try {
-    const parsed = JSON.parse(stored) as Partial<ApiSettings>;
+    const parsed = JSON.parse(legacyStored) as Partial<ApiSettings>;
     return {
-      token: typeof parsed.token === "string" ? parsed.token : "",
-      managementKey: typeof parsed.managementKey === "string" ? parsed.managementKey : "",
-      baseUrls: {
-        ...DEFAULT_BASE_URLS,
-        ...(parsed.baseUrls ?? {}),
-      },
+      ...DEFAULT_BASE_URLS,
+      ...(parsed.baseUrls ?? {}),
     };
   } catch {
-    return defaultSettings;
+    return { ...DEFAULT_BASE_URLS };
   }
+}
+
+function readSettingsFromStorage(): ApiSettings {
+  return {
+    token: readSessionValue(TOKEN_SESSION_STORAGE_KEY),
+    managementKey: readSessionValue(MANAGEMENT_KEY_SESSION_STORAGE_KEY),
+    baseUrls: readBaseUrlsFromStorage(),
+  };
+}
+
+function writeSessionValue(key: string, value: string) {
+  if (value.trim()) {
+    sessionStorage.setItem(key, value);
+    return;
+  }
+  sessionStorage.removeItem(key);
 }
 
 export function ApiSettingsProvider({ children }: PropsWithChildren) {
@@ -52,8 +87,20 @@ export function ApiSettingsProvider({ children }: PropsWithChildren) {
   );
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  }, [settings]);
+    localStorage.setItem(BASE_URLS_STORAGE_KEY, JSON.stringify(settings.baseUrls));
+  }, [settings.baseUrls]);
+
+  useEffect(() => {
+    writeSessionValue(TOKEN_SESSION_STORAGE_KEY, settings.token);
+  }, [settings.token]);
+
+  useEffect(() => {
+    writeSessionValue(MANAGEMENT_KEY_SESSION_STORAGE_KEY, settings.managementKey);
+  }, [settings.managementKey]);
+
+  useEffect(() => {
+    localStorage.removeItem(LEGACY_SETTINGS_STORAGE_KEY);
+  }, []);
 
   const value = useMemo<ApiSettingsContextValue>(
     () => ({
@@ -79,7 +126,7 @@ export function ApiSettingsProvider({ children }: PropsWithChildren) {
       resetBaseUrls: () =>
         setSettings((current) => ({
           ...current,
-          baseUrls: DEFAULT_BASE_URLS,
+          baseUrls: { ...DEFAULT_BASE_URLS },
         })),
     }),
     [settings],

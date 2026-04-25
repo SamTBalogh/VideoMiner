@@ -6,9 +6,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -54,6 +57,28 @@ class VideoMinerPublisherServiceTest {
 
         Channel channel = new Channel("ch1", "Test", "Desc", "2024-01-01");
         assertDoesNotThrow(() -> publisherService.publish(channel, "mytoken"));
+    }
+
+    @Test
+    @DisplayName("publish skips Authorization header when bearer token has no value")
+    @SuppressWarnings("unchecked")
+    void publish_withEmptyBearerValue_skipsAuthorizationHeader() throws ForbiddenException {
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(), eq(Void.class)))
+                .thenReturn(ResponseEntity.ok(null));
+
+        Channel channel = new Channel("ch1", "Test", "Desc", "2024-01-01");
+        publisherService.publish(channel, "Bearer ");
+
+        ArgumentCaptor<HttpEntity<Channel>> requestCaptor = ArgumentCaptor.forClass((Class) HttpEntity.class);
+        verify(restTemplate).exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                requestCaptor.capture(),
+                eq(Void.class)
+        );
+
+        HttpHeaders headers = requestCaptor.getValue().getHeaders();
+        assertFalse(headers.containsKey(HttpHeaders.AUTHORIZATION));
     }
 
     @Test

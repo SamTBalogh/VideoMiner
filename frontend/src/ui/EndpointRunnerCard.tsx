@@ -21,6 +21,12 @@ interface EndpointRunnerCardProps {
   onResult?: (result: ApiExecutionResult) => void;
 }
 
+function formatResponsePayload(result: ApiExecutionResult) {
+  const payload = result.body ?? result.rawBody;
+  if (typeof payload === "string") return payload;
+  return JSON.stringify(payload, null, 2);
+}
+
 export function EndpointRunnerCard({
   endpoint,
   title,
@@ -177,7 +183,7 @@ export function EndpointRunnerCard({
           <div className={responseClass}>
             {response.status} {response.statusText} ({Math.round(response.durationMs)} ms)
           </div>
-          <pre className="response">{JSON.stringify(response.body ?? response.rawBody, null, 2)}</pre>
+          <pre className="response">{formatResponsePayload(response)}</pre>
         </div>
       )}
     </section>
